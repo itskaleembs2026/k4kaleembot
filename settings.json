@@ -1,5 +1,5 @@
 {
-  "autoReact": true,
+  "autoReact": false,
   "reactInGroups": true,
   "reactInPrivate": true,
   "reactToOwnMessages": false,
