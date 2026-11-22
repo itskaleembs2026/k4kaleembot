@@ -1,0 +1,12 @@
+{
+  "autoReact": false,
+  "reactInGroups": true,
+  "reactInPrivate": true,
+  "reactToOwnMessages": false,
+  "antiDeleteAuto": true,
+  "viewOnceAuto": true,
+  "ownerOnlyCommands": true,
+  "aiAutoReply": false,
+  "aiMode": "specific",
+  "aiAllowedUsers": []
+}

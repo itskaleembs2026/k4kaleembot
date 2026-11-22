@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Super Bot Pro - Cloud Dashboard</title>
+  <meta name="description" content="Official Live Dashboard for WhatsApp Super Bot Pro by Kaleem Khan">
+  <meta name="theme-color" content="#111b21">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👑</text></svg>">
+  <style>
+    :root {
+      --bg-dark: #0b141a;
+      --card-bg: #111b21;
+      --card-inner: #202c33;
+      --border-color: #2a3942;
+      --accent: #00a884;
+      --accent-hover: #028e70;
+      --accent-green: #25d366;
+      --text-primary: #e9edef;
+      --text-muted: #8696a0;
+      --danger: #ea4335;
+      --danger-hover: #d93025;
+      --warning: #f59e0b;
+      --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 0%, #172a33 0%, var(--bg-dark) 75%);
+      color: var(--text-primary);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 15px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 620px;
+    }
+
+    .header-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 24px 20px;
+      text-align: center;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.6);
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #00a884, #25d366, #1f6feb);
+    }
+
+    .brand-title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .brand-title span.crown {
+      filter: drop-shadow(0 2px 8px rgba(255, 215, 0, 0.4));
+    }
+
+    .brand-subtitle {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    .brand-subtitle b {
+      color: var(--text-primary);
+    }
+
+    /* Connection Status Pill */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 18px;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 600;
+      background: var(--card-inner);
+      border: 1px solid var(--border-color);
+      transition: all 0.3s ease;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--warning);
+      animation: pulse 1.8s infinite;
+    }
+
+    .status-pill.connected .status-dot {
+      background: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green);
+    }
+
+    .status-pill.connected {
+      border-color: rgba(0, 168, 132, 0.4);
+      background: rgba(0, 168, 132, 0.12);
+      color: var(--accent-green);
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Tabs */
+    .tabs-nav {
+      display: flex;
+      background: var(--card-inner);
+      padding: 5px;
+      border-radius: 12px;
+      gap: 5px;
+      margin-top: 20px;
+      border: 1px solid var(--border-color);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px 8px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 3px 10px rgba(0, 168, 132, 0.35);
+    }
+
+    .tab-pane {
+      display: none;
+      margin-top: 18px;
+    }
+
+    .tab-pane.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Connected Box */
+    .connected-card {
+      background: linear-gradient(145deg, #18272f 0%, #111b21 100%);
+      border: 2px solid var(--accent);
+      border-radius: 16px;
+      padding: 24px 18px;
+      text-align: center;
+      margin-top: 16px;
+    }
+
+    .connected-card .icon-check {
+      font-size: 40px;
+      margin-bottom: 8px;
+    }
+
+    .connected-user-text {
+      font-size: 19px;
+      font-weight: bold;
+      color: var(--accent-green);
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .uptime-badge {
+      display: inline-block;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--card-inner);
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-top: 6px;
+    }
+
+    /* QR Container */
+    .qr-box {
+      background: #ffffff;
+      padding: 14px;
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px auto;
+      min-width: 250px;
+      min-height: 250px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .qr-box img {
+      width: 235px;
+      height: 235px;
+      display: block;
+      border-radius: 6px;
+    }
+
+    /* Phone Pairing Input */
+    .input-group {
+      text-align: left;
+      margin: 15px 0 10px;
+    }
+
+    .input-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .phone-input {
+      width: 100%;
+      background: var(--card-inner);
+      border: 1px solid var(--border-color);
+      color: var(--accent-green);
+      font-size: 16px;
+      font-weight: bold;
+      padding: 13px 14px;
+      border-radius: 10px;
+      outline: none;
+      letter-spacing: 1px;
+      transition: border-color 0.2s;
+    }
+
+    .phone-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(0, 168, 132, 0.2);
+    }
+
+    .btn-submit {
+      width: 100%;
+      background: var(--accent);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 13px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 10px;
+    }
+
+    .btn-submit:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-submit:disabled {
+      background: #2a3942;
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+
+    .code-display-box {
+      background: var(--card-inner);
+      border: 2px dashed var(--accent);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 15px;
+      text-align: center;
+      display: none;
+    }
+
+    .code-big {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--accent-green);
+      letter-spacing: 5px;
+      font-family: monospace;
+      margin-bottom: 10px;
+    }
+
+    .btn-copy {
+      background: #2a3942;
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      padding: 7px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .btn-copy:hover {
+      background: #32434d;
+    }
+
+    /* Session Key Tab */
+    .session-textarea {
+      width: 100%;
+      height: 100px;
+      background: var(--card-inner);
+      color: var(--accent-green);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      resize: none;
+      margin-top: 10px;
+      word-break: break-all;
+    }
+
+    /* Feature Grid */
+    .features-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .feature-item {
+      background: var(--card-inner);
+      border: 1px solid #233138;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+    }
+
+    .feature-item .f-name {
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-bottom: 3px;
+    }
+
+    .feature-item .f-val {
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .dot-green {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      display: inline-block;
+    }
+
+    /* Command Cheat Sheet */
+    .cmd-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .cmd-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-inner);
+      border: 1px solid #233138;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .cmd-label {
+      color: var(--text-primary);
+    }
+
+    .cmd-code {
+      background: #2a3942;
+      color: var(--accent-green);
+      padding: 2px 8px;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    /* Footer Buttons */
+    .actions-bar {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .btn-action {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: var(--card-inner);
+      color: var(--text-primary);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+
+    .btn-action:hover {
+      background: #2a3942;
+    }
+
+    .btn-action.danger {
+      color: var(--danger);
+      border-color: rgba(234, 67, 53, 0.3);
+    }
+
+    .btn-action.danger:hover {
+      background: rgba(234, 67, 53, 0.15);
+    }
+
+    .footer {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-top: 18px;
+    }
+
+    .step-box {
+      background: var(--card-inner);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text-muted);
+      text-align: left;
+      margin-top: 12px;
+    }
+
+    .step-box b {
+      color: var(--text-primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header Card -->
+    <div class="header-card">
+      <div class="brand-title">
+        <span class="crown">👑</span> WhatsApp Super Bot Pro
+      </div>
+      <div class="brand-subtitle">
+        Ultra 0ms Latency Engine • Owner: <b>Kaleem Khan</b> (<code>923267004137</code>)
+      </div>
+
+      <div class="status-pill" id="statusPill">
+        <span class="status-dot"></span>
+        <span id="statusText">Starting Bot Core...</span>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="tabs-nav">
+        <button class="tab-btn active" onclick="switchTab('tab-connect')">📱 Link WhatsApp</button>
+        <button class="tab-btn" onclick="switchTab('tab-session')">🔑 Cloud Session</button>
+        <button class="tab-btn" onclick="switchTab('tab-commands')">📜 Commands</button>
+      </div>
+
+      <!-- Tab 1: Connect / Pair -->
+      <div id="tab-connect" class="tab-pane active">
+        <!-- Live Connected Card (Shown when logged in) -->
+        <div id="connectedCard" style="display: none;">
+          <div class="connected-card">
+            <div class="icon-check">✅</div>
+            <div class="connected-user-text" id="connectedUserNumber">923267004137</div>
+            <p style="color: var(--text-muted); font-size: 13px;">WhatsApp Account Successfully Linked & Active!</p>
+            <div class="uptime-badge" id="uptimeBadge">Uptime: 0s</div>
+          </div>
+        </div>
+
+        <!-- Disconnected Linking Interface -->
+        <div id="linkingSection">
+          <div style="display: flex; gap: 8px; justify-content: center; margin: 15px 0 10px;">
+            <button class="tab-btn active" id="btnPairMode" style="flex: 0 1 auto; padding: 6px 16px;" onclick="setLinkMode('pair')">🔢 Phone Pairing Code</button>
+            <button class="tab-btn" id="btnQrMode" style="flex: 0 1 auto; padding: 6px 16px;" onclick="setLinkMode('qr')">📷 QR Code</button>
+          </div>
+
+          <!-- Sub-view: Pairing Code -->
+          <div id="viewPair">
+            <div class="input-group">
+              <label class="input-label" for="phoneInput">WhatsApp Phone Number (with Country Code):</label>
+              <input type="text" id="phoneInput" class="phone-input" placeholder="e.g. 923267004137" value="923267004137">
+            </div>
+            <button class="btn-submit" id="getPairCodeBtn" onclick="requestPairingCode()">🔢 Generate 8-Digit Pairing Code</button>
+
+            <div id="codeDisplayBox" class="code-display-box">
+              <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 5px;">Your WhatsApp Pairing Code:</div>
+              <div class="code-big" id="pairingCodeText">----</div>
+              <button class="btn-copy" onclick="copyPairingCode()">📋 Copy Code</button>
+            </div>
+
+            <div class="step-box">
+              <b>👉 How to Link via Phone Number:</b><br>
+              1. Open WhatsApp on your phone.<br>
+              2. Tap <b>Settings</b> (or 3 dots) ➔ <b>Linked Devices</b>.<br>
+              3. Tap <b>Link a Device</b> ➔ select <b>"Link with phone number instead"</b>.<br>
+              4. Enter the 8-digit code shown above.
+            </div>
+          </div>
+
+          <!-- Sub-view: QR Code -->
+          <div id="viewQr" style="display: none;">
+            <div class="qr-box">
+              <img id="qrImg" src="" alt="WhatsApp QR Code">
+            </div>
+            <p style="color: var(--text-muted); font-size: 13px;">Point your phone camera to scan QR Code</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Cloud Session Backup -->
+      <div id="tab-session" class="tab-pane">
+        <p style="color: var(--text-muted); font-size: 13px; text-align: left;">
+          <b>Permanent Hosting Session Key:</b><br>
+          Host karte waqt yeh key apne hosting server (Render, Railway, VPS, cPanel) ke <b>Environment Variables</b> mein <code>SESSION_DATA</code> ke naam se add karein taake bot kabhi QR scan na maangay.
+        </p>
+        <textarea id="sessionKeyBox" class="session-textarea" readonly placeholder="Connect WhatsApp first to generate Session Key..."></textarea>
+        <button class="btn-submit" onclick="copySessionKey()">📋 Copy Session Key</button>
+
+        <div class="step-box">
+          <b>🚀 How to Host Permanently with Domain:</b><br>
+          1. Copy the <b>Session Key</b> above.<br>
+          2. In your Cloud Host (Render / Railway / VPS PM2), add Environment Variable:<br>
+          &nbsp;&nbsp;• <b>Key:</b> <code>SESSION_DATA</code><br>
+          &nbsp;&nbsp;• <b>Value:</b> [Pasted Session Key]<br>
+          &nbsp;&nbsp;• <b>APP_URL:</b> <code>https://yourdomain.com</code><br>
+          3. Point your Domain DNS (A record or CNAME) to your server IP/host.<br>
+          4. Bot will run <b>24/7 permanently without sleeping or disconnecting</b>!
+        </div>
+      </div>
+
+      <!-- Tab 3: Commands Quick View -->
+      <div id="tab-commands" class="tab-pane">
+        <div class="cmd-list">
+          <div class="cmd-row">
+            <span class="cmd-label">Master Menu & Help</span>
+            <code class="cmd-code">.menu</code>
+          </div>
+          <div class="cmd-row">
+            <span class="cmd-label">ChatGPT AI Whitelist / Toggle</span>
+            <code class="cmd-code">.ai @user / .ai on</code>
+          </div>
+          <div class="cmd-row">
+            <span class="cmd-label">Recover Deleted Msg & Media</span>
+            <code class="cmd-code">.deleterecovery</code>
+          </div>
+          <div class="cmd-row">
+            <span class="cmd-label">Unlock View-Once Photos/Videos</span>
+            <code class="cmd-code">.view / .vo</code>
+          </div>
+          <div class="cmd-row">
+            <span class="cmd-label">Popular Urdu Naats (HD Audio)</span>
+            <code class="cmd-code">.naat &lt;name&gt;</code>
+          </div>
+          <div class="cmd-row">
+            <span class="cmd-label">Daily Islamic / Hijri Date</span>
+            <code class="cmd-code">.islamicdate</code>
+          </div>
+          <div class="cmd-row">
+            <span class="cmd-label">Daily Prayer / Namaz Timings</span>
+            <code class="cmd-code">.namaz &lt;city&gt;</code>
+          </div>
+          <div class="cmd-row">
+            <span class="cmd-label">Karan Aujla Songs Audio Player</span>
+            <code class="cmd-code">.aujla &lt;song&gt;</code>
+          </div>
+          <div class="cmd-row">
+            <span class="cmd-label">13 Viral Meme Sound Effects</span>
+            <code class="cmd-code">.fun</code>
+          </div>
+          <div class="cmd-row">
+            <span class="cmd-label">Speed Latency & RAM Stats</span>
+            <code class="cmd-code">.ping</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Shield Matrix -->
+    <div class="features-card">
+      <div class="card-title">
+        <span>🛡️</span> Live Engine Configuration
+      </div>
+      <div class="features-grid">
+        <div class="feature-item">
+          <div class="f-name">Ghost Anti-Delete Shield</div>
+          <div class="f-val"><span class="dot-green"></span> Private to Owner DM</div>
+        </div>
+        <div class="feature-item">
+          <div class="f-name">View Once Unlocker</div>
+          <div class="f-val"><span class="dot-green"></span> Auto Cached (.view)</div>
+        </div>
+        <div class="feature-item">
+          <div class="f-name">ChatGPT AI Engine</div>
+          <div class="f-val" id="aiStatusVal"><span class="dot-green"></span> Whitelist Mode</div>
+        </div>
+        <div class="feature-item">
+          <div class="f-name">Security & Owner Lock</div>
+          <div class="f-val"><span class="dot-green"></span> Strict (923267004137)</div>
+        </div>
+      </div>
+
+      <!-- Quick Action Controls -->
+      <div class="actions-bar">
+        <a href="/health" target="_blank" class="btn-action">🔍 API Health Check</a>
+        <button class="btn-action danger" onclick="resetSession()">🔄 Disconnect / Reset Session</button>
+      </div>
+    </div>
+
+    <div class="footer">
+      WhatsApp Super Bot Pro • Realtime Node.js Core • Designed for Permanent Domain Hosting
+    </div>
+  </div>
+
+  <script>
+    let isConnected = false;
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+      event.target.classList.add('active');
+      const pane = document.getElementById(tabId);
+      if (pane) pane.classList.add('active');
+
+      if (tabId === 'tab-session') {
+        fetchSessionString();
+      }
+    }
+
+    function setLinkMode(mode) {
+      const btnPair = document.getElementById('btnPairMode');
+      const btnQr = document.getElementById('btnQrMode');
+      const viewPair = document.getElementById('viewPair');
+      const viewQr = document.getElementById('viewQr');
+
+      if (mode === 'pair') {
+        btnPair.classList.add('active');
+        btnQr.classList.remove('active');
+        viewPair.style.display = 'block';
+        viewQr.style.display = 'none';
+      } else {
+        btnQr.classList.add('active');
+        btnPair.classList.remove('active');
+        viewQr.style.display = 'block';
+        viewPair.style.display = 'none';
+      }
+    }
+
+    async function requestPairingCode() {
+      const phoneInput = document.getElementById('phoneInput');
+      const btn = document.getElementById('getPairCodeBtn');
+      const cleanPhone = phoneInput.value.replace(/\D/g, '');
+
+      if (cleanPhone.length < 10) {
+        return alert('Please enter a valid WhatsApp number with country code (e.g. 923267004137)');
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'Requesting Code from WhatsApp...';
+
+      try {
+        const res = await fetch('/pair-code?phone=' + encodeURIComponent(cleanPhone));
+        const data = await res.json();
+        if (data.success && data.code) {
+          document.getElementById('pairingCodeText').innerText = data.code;
+          document.getElementById('codeDisplayBox').style.display = 'block';
+          btn.innerText = '🔄 Generate New Code';
+        } else {
+          alert('❌ ' + (data.error || data.message || 'Could not generate pairing code.'));
+          btn.innerText = '🔢 Generate 8-Digit Pairing Code';
+        }
+      } catch (err) {
+        alert('Server connection error: ' + err.message);
+        btn.innerText = '🔢 Generate 8-Digit Pairing Code';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function copyPairingCode() {
+      const code = document.getElementById('pairingCodeText').innerText.trim();
+      navigator.clipboard.writeText(code.replace(/\s+/g, '')).then(() => {
+        alert('✅ Pairing code copied: ' + code);
+      }).catch(() => {
+        alert('Code: ' + code);
+      });
+    }
+
+    async function fetchSessionString() {
+      try {
+        const res = await fetch('/api/session');
+        const data = await res.json();
+        if (data.success && data.session) {
+          document.getElementById('sessionKeyBox').value = data.session;
+        } else {
+          document.getElementById('sessionKeyBox').value = '⚠️ WhatsApp is not connected yet. Link account first to generate session key.';
+        }
+      } catch (e) {
+        document.getElementById('sessionKeyBox').value = 'Error fetching session key: ' + e.message;
+      }
+    }
+
+    function copySessionKey() {
+      const ta = document.getElementById('sessionKeyBox');
+      if (!ta.value || ta.value.startsWith('⚠️') || ta.value.startsWith('Error')) {
+        return alert('Please connect WhatsApp first before copying session key.');
+      }
+      ta.select();
+      navigator.clipboard.writeText(ta.value).then(() => {
+        alert('✅ Permanent Session Key copied to clipboard! Paste it into SESSION_DATA on your cloud host.');
+      }).catch(() => {
+        alert('Session Key copied!');
+      });
+    }
+
+    async function resetSession() {
+      if (!confirm('Are you sure you want to disconnect current WhatsApp and generate fresh linking session?')) return;
+      document.getElementById('statusText').innerText = 'Resetting Session...';
+      await fetch('/reset-auth');
+      setTimeout(() => { location.reload(); }, 2000);
+    }
+
+    function formatUptime(seconds) {
+      if (!seconds) return '0s';
+      const d = Math.floor(seconds / (3600 * 24));
+      const h = Math.floor((seconds % (3600 * 24)) / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      let parts = [];
+      if (d > 0) parts.push(d + 'd');
+      if (h > 0) parts.push(h + 'h');
+      if (m > 0) parts.push(m + 'm');
+      parts.push(s + 's');
+      return parts.join(' ');
+    }
+
+    // Realtime Poller
+    setInterval(async () => {
+      try {
+        const res = await fetch('/status');
+        const data = await res.json();
+
+        const statusPill = document.getElementById('statusPill');
+        const statusText = document.getElementById('statusText');
+        const connectedCard = document.getElementById('connectedCard');
+        const linkingSection = document.getElementById('linkingSection');
+        const connectedUserNumber = document.getElementById('connectedUserNumber');
+        const uptimeBadge = document.getElementById('uptimeBadge');
+        const qrImg = document.getElementById('qrImg');
+
+        statusText.innerText = data.status;
+
+        if (data.user) {
+          isConnected = true;
+          statusPill.classList.add('connected');
+          connectedCard.style.display = 'block';
+          linkingSection.style.display = 'none';
+
+          const phoneNum = data.user.id ? data.user.id.split(':')[0] : 'Owner';
+          connectedUserNumber.innerText = '+' + phoneNum;
+          if (data.uptime) {
+            uptimeBadge.innerText = 'Uptime: ' + formatUptime(data.uptime);
+          }
+        } else {
+          isConnected = false;
+          statusPill.classList.remove('connected');
+          connectedCard.style.display = 'none';
+          linkingSection.style.display = 'block';
+
+          if (data.qr) {
+            qrImg.src = data.qr;
+          }
+        }
+      } catch (e) {}
+    }, 1500);
+  </script>
+</body>
+</html>

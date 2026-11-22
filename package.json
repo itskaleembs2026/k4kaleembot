@@ -1,0 +1,23 @@
+{
+  "name": "whatsapp-super-bot-pro",
+  "version": "1.0.0",
+  "description": "WhatsApp Super Bot Pro with Web Dashboard and QR Code",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "build": "echo 'Build complete'"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "latest",
+    "express": "^4.21.2",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "sharp": "^0.35.5",
+    "youtubei.js": "^13.1.0"
+  }
+}

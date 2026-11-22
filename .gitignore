@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# WhatsApp Session & Cache
+auth_info_baileys/
+session/
+downloads/
+media_cache/
+
+# Large Windows Executables (Render/Linux uses native apt packages)
+*.exe
+ffmpeg.exe
+yt-dlp.exe
+
+# Archives & Temporary files
+*.zip
+*.log
+bot.lock
+.env
+.DS_Store
