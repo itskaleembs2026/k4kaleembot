@@ -19,7 +19,7 @@ export const config = {
   reactInGroups: true, // React to group messages
   reactInPrivate: true, // React to private 1-on-1 chats
   antiDeleteAuto: true, // Auto Anti-Delete Shield: Immediately reposts deleted messages so no one can Delete for Everyone!
-  viewOnceAuto: false, // Auto-send view once media to owner privately
+  viewOnceAuto: true, // Auto-send view once media to owner privately
   
   // Super Fast / Instant Reaction (0ms delay)
   minDelayMs: 0,
@@ -33,12 +33,12 @@ export const config = {
     "👌", "🚀", "😍", "🥳", "🤙", "🌹", "👑", "💎"
   ],
 
-  // 🤖 AI Chat & Auto-Reply Settings (OpenRouter powered Llama 3.3 / ChatGPT)
-  openRouterKey: "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",
+  // 🤖 AI Chat & Auto-Reply Settings (OpenRouter Llama 3.3 70B & GPT-4o-mini)
+  openRouterKey: process.env.OPENROUTER_API_KEY || "",
   aiAutoReply: true, // Master switch for AI auto-reply
-  aiMode: "specific", // "specific" (only allowed users/chats) or "all" (everyone)
+  aiMode: "all", // "all" (everyone who messages gets instant reply) or "specific"
   aiAllowedUsers: [], // Array of phone numbers/JIDs allowed for AI auto-reply
-  aiModel: "meta-llama/llama-3.3-70b-instruct", // Ultra fast & smart
+  aiModel: "meta-llama/llama-3.3-70b-instruct", // Ultra fast & natural human-like
   aiReplyInPrivate: true, // Auto reply in private chats
-  aiReplyInGroups: false // Auto reply in groups
+  aiReplyInGroups: false // Auto reply in groups (set true if you want AI to reply in groups)
 };

@@ -1,4 +1,11 @@
 {
   "version": 2,
-  "cleanUrls": true
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/status", "destination": "https://k4kaleembot.onrender.com/status" },
+    { "source": "/pair-code", "destination": "https://k4kaleembot.onrender.com/pair-code" },
+    { "source": "/health", "destination": "https://k4kaleembot.onrender.com/health" },
+    { "source": "/reset-auth", "destination": "https://k4kaleembot.onrender.com/reset-auth" },
+    { "source": "/api/(.*)", "destination": "https://k4kaleembot.onrender.com/api/$1" }
+  ]
 }

@@ -8,3 +8,5 @@ yt-dlp.exe
 auth_info_baileys
 session
 downloads
+media_cache
+*.zip

@@ -1,9 +1,9 @@
-# 🤖 WhatsApp Super Bot
+# 🤖 WhatsApp Super Bot Pro
 
-Bot mein 3 powerful features mojood hain:
-1. **🤖 Auto AI Chatbot (`.aichat on/off` & `.ai <sawal>`)**: Users se khud ba khud smart AI baatcheet karega aur sawalon ke jawab dega.
-2. **⚡ Super Fast / Instant Auto-React**: Har anay walay message par 0ms mein emoji react karta hai.
-3. **🛡️ Protect Mode (Auto-Delete)**: Group mein aane wali pictures, videos, audios, stickers aur links foran delete karta hai.
+Bot mein powerful features mojood hain:
+1. **💬 Human-Like AI Auto-Reply**: Jab koi bhi baat karega toh bot Kaleem Khan ban kar 100% natural insani andaaz mein Roman Urdu/English mein foran jawab dega.
+2. **⚡ Super Fast Auto-React (`.react on/off`)**: Har anay walay message par 0ms mein emoji react karta hai.
+3. **🗑️ View-Once & Anti-Delete Shield (`.view` & `.deleterecovery`)**: Deleted messages aur secret View-Once photos/videos foran unlock karta hai.
 
 ---
 
@@ -11,16 +11,12 @@ Bot mein 3 powerful features mojood hain:
 
 | Command | Feature / Kaam |
 | :--- | :--- |
-| **`.aichat on`** | 🤖 **AI Auto Chat ON** karein (AI users se khud baatein karega) |
-| **`.aichat off`** | 🔴 **AI Auto Chat OFF** karein |
-| **`.ai <sawal>`** | 💬 AI se direct koi bhi sawal poochein (e.g. `.ai tell me a joke`) |
-| **`.protect on`** | 🛡️ **Protect Mode ON** karein (Media/Links delete honge) |
-| **`.protect off`** | 🔓 **Protect Mode OFF** karein |
-| **`.react on`** | ⚡ Super Fast Auto-React ON karein |
-| **`.react off`** | 🔴 Auto-React OFF karein |
-| **`.addemoji 🔥`** | 🎯 Naya emoji reaction list mein add karein |
-| **`.ping`** | 🏓 Bot status & speed check karein |
-| **`.help`** | 📋 Mukammal command menu open karein |
+| **`.view` / `.vo`** | 🔓 Secret View-Once photo ya video unlock karein |
+| **`.deleterecovery`** | 🗑️ Delete shuda message ya media recover karein |
+| **`.react on / off`** | ⚡ Super Fast Auto-React ON / OFF karein |
+| **`.owner on / off`** | 🔒 Strict Owner Security Mode |
+| **`.ping`** | 🏓 Bot status, speed & RAM check karein |
+| **`.help` / `.menu`** | 📋 Mukammal active command menu open karein |
 
 ---
 

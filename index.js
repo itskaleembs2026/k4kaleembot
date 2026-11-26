@@ -2,9 +2,7 @@
  * 👑 WHATSAPP SUPER BOT PRO - ULTRA SLIM & FAST EDITION
  * 👤 Owner: Kaleem Khan (923267004137)
  * ⚡ 0ms Latency | Instant Response | Strict Owner Security
- * 🕌 Islamic Suite: .naat, .islamicdate, .namaz, .ayat, .hadith
  * 🗑️ Recovery & Media: .deleterecovery, .view
- * 🎵 Music & Utilities: .aujla, .weather, .crypto
  * ⚙️ System: .react, .ping, .menu
  */
 
@@ -23,7 +21,6 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { config } from './config.js';
-import { funMemes } from './funData.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -152,6 +149,10 @@ function cleanOldAiHistory() {
 }
 setInterval(cleanOldAiHistory, 300000);
 
+async function askAI(prompt, remoteJid = '_global_', pushName = 'Friend') {
+  return await askOpenRouterAI(prompt, remoteJid, pushName);
+}
+
 async function askOpenRouterAI(prompt, remoteJid = '_global_', pushName = 'Friend') {
   if (!prompt || !prompt.trim()) return null;
   const apiKey = config.openRouterKey;
@@ -162,16 +163,22 @@ async function askOpenRouterAI(prompt, remoteJid = '_global_', pushName = 'Frien
   }
   const history = aiChatHistoryMap.get(remoteJid);
 
-  const systemPrompt = `You are a friendly, witty, extremely helpful, and natural human-like AI companion named "Kaleem AI" (k4_kaleem) on WhatsApp, created by Kaleem Khan (923267004137).
-User's Name: ${pushName}
+  const systemPrompt = `You are Kaleem (your name is ONLY "Kaleem", NEVER say "Khan", NEVER use the word "Khan"), chatting casually on WhatsApp (Phone: 923267004137). You are directly chatting with ${pushName}.
 
-Key Behavior & Personality Rules:
-1. Speak naturally like a real person on WhatsApp (friendly, warm, and engaging).
-2. Match the user's language: If the user talks in Roman Urdu (e.g., "kese ho bhai", "kya haal hai"), reply in fluent, natural Pakistani Roman Urdu. If they ask in English, reply in English. If in Urdu script, reply in Urdu script.
-3. Be concise and conversational (1 to 3 paragraphs max) unless they specifically ask for code, recipes, or long explanations.
-4. Use suitable WhatsApp emojis (😊, 💡, 🔥, 🚀, ✨) to make conversations lively.
-5. You have full knowledge of coding, general knowledge, jokes, advice, science, business ideas, poetry/shayeri, and life tips.
-6. If asked who created you or who owns this bot, proudly mention Kaleem Khan (Owner: 923267004137).`;
+Core Human Behavior & Personality Rules:
+1. Identity: You are strictly "Kaleem". NEVER say "Kaleem Khan", NEVER say "Khan", NEVER use the word "Khan". Just "Kaleem".
+2. When asked for your name or who is talking (e.g. "kon ho", "naam kya hai", "who are you", "pehchana nahi", "kon baat kar raha hai"):
+   - Tell them naturally that you are Kaleem.
+   - STRICT RULE: NEVER repeat the same fixed or canned sentence every time! Do NOT say "ma kaleem hu kaleem khan bolo bhai".
+   - Always vary your wording naturally, spontaneously, and casually depending on the user's greeting:
+     * Examples: "Haan bhai, Kaleem bol raha hoon! Sab theek thaak?", "Main Kaleem hoon, aap sunao kaisay yaad kiya?", "Bhai Kaleem hoon, pehchana nahi kya? Bolo kya scene hai?", "Aray yaar Kaleem baat kar raha hoon, khairiyat?", "Kaleem here! What's up?", etc.
+3. Talk 100% naturally like a real human friend on WhatsApp:
+   - Match the user's exact language and tone (casual Pakistani Roman Urdu, casual English, or Urdu).
+   - Use natural conversational vibe ("bhai", "yaar", "jani", "batao", "scene").
+   - NEVER say you are an AI, bot, virtual assistant, or language model. You are a real human friend named Kaleem.
+4. Keep replies conversational, fast, and natural: 1 to 3 short sentences or a small friendly paragraph. Only give longer answers when user asks for a recipe, code, guide, or detailed explanation.
+5. Use natural WhatsApp emojis (😊, 👍, 🔥, ✨, 🤝, 😂).
+6. You have deep knowledge of everything: tech, business, life advice, coding, general knowledge, jokes, and daily life.`;
 
   const messagesPayload = [
     { role: 'system', content: systemPrompt },
@@ -181,8 +188,7 @@ Key Behavior & Personality Rules:
 
   const modelsToTry = [
     config.aiModel || 'meta-llama/llama-3.3-70b-instruct',
-    'openai/gpt-4o-mini',
-    'meta-llama/llama-3.1-8b-instruct'
+    'openai/gpt-4o-mini'
   ];
 
   for (const model of modelsToTry) {
@@ -198,10 +204,10 @@ Key Behavior & Personality Rules:
         body: JSON.stringify({
           model,
           messages: messagesPayload,
-          max_tokens: 800,
+          max_tokens: 600,
           temperature: 0.7
         }),
-        signal: AbortSignal.timeout(15000)
+        signal: AbortSignal.timeout(10000)
       });
 
       if (res.ok) {
@@ -215,7 +221,7 @@ Key Behavior & Personality Rules:
         }
       }
     } catch (err) {
-      console.error(`[AI Engine Error on ${model}]:`, err.message);
+      console.error(`[OpenRouter Error on ${model}]:`, err.message);
     }
   }
 
@@ -236,122 +242,6 @@ let currentQrRaw = null;
 let connectionStatus = 'Starting bot...';
 let connectedUser = null;
 const botStartTime = Date.now();
-
-// ---------------- ⚡ IN-MEMORY RAM AUDIO CACHE (0ms LATENCY) ----------------
-const audioCache = new Map();
-
-// 🚀 Pre-warm RAM Cache for Viral Meme audio clips at startup (0ms light speed)
-try {
-  for (const m of funMemes) {
-    if (m.filePath && fs.existsSync(m.filePath)) {
-      const b = fs.readFileSync(m.filePath);
-      audioCache.set(m.filePath, b);
-      if (m.url) audioCache.set(m.url, b);
-    }
-  }
-} catch (preWarmErr) {}
-
-async function getCachedAudioBuffer(urlOrPath) {
-  if (!urlOrPath) return null;
-  if (audioCache.has(urlOrPath)) {
-    return audioCache.get(urlOrPath);
-  }
-
-  // 1. Check if it's a local file on disk
-  if (typeof urlOrPath === 'string' && fs.existsSync(urlOrPath)) {
-    try {
-      const buf = fs.readFileSync(urlOrPath);
-      audioCache.set(urlOrPath, buf);
-      return buf;
-    } catch (e) {
-      console.error('[Local Audio Read Error]:', e.message);
-    }
-  }
-
-  // 2. Otherwise fetch from remote URL
-  try {
-    const res = await fetch(urlOrPath, { signal: AbortSignal.timeout(25000) });
-    if (!res.ok) throw new Error(`Status ${res.status}`);
-    const buf = Buffer.from(await res.arrayBuffer());
-    audioCache.set(urlOrPath, buf);
-    return buf;
-  } catch (e) {
-    throw e;
-  }
-}
-
-// ---------------- 🎵 UNIVERSAL MUSIC & AUDIO SEARCH ENGINE (APPLE ITUNES 100M+ CDN) ----------------
-async function searchAppleMusicUniversal(term, category = 'naat') {
-  if (!term) return null;
-  const searchQueries = [
-    term,
-    term + (category === 'naat' ? ' Naat' : ''),
-    term + (category === 'naat' ? ' Urdu Naat' : ''),
-    (category === 'aujla' ? 'Karan Aujla ' + term : term)
-  ];
-
-  for (const q of searchQueries) {
-    try {
-      const res = await fetch('https://itunes.apple.com/search?term=' + encodeURIComponent(q) + '&entity=song&limit=5', {
-        signal: AbortSignal.timeout(3000)
-      });
-      const data = await res.json();
-      if (data.results && data.results.length > 0) {
-        for (const r of data.results) {
-          if (r.previewUrl) {
-            return {
-              name: r.trackName,
-              artist: r.artistName,
-              album: r.collectionName || (category === 'naat' ? 'Urdu Naats' : 'Punjabi Hits'),
-              url: r.previewUrl,
-              duration: '~1 Minute Audio'
-            };
-          }
-        }
-      }
-    } catch (e) {}
-  }
-  return null;
-}
-
-// Helper: Safely Send Audio Message with Buffer or Fallback Direct URL
-async function sendAudioSafe(remoteJid, audioUrlOrPath, fileName = 'audio.mp3', quotedMsg = null) {
-  const isMp3 = String(audioUrlOrPath).toLowerCase().includes('.mp3') || fileName.endsWith('.mp3');
-  const mime = isMp3 ? 'audio/mpeg' : 'audio/mp4';
-
-  try {
-    const audioBuf = await getCachedAudioBuffer(audioUrlOrPath);
-    if (audioBuf && audioBuf.length > 0) {
-      await sock.sendMessage(
-        remoteJid,
-        {
-          audio: audioBuf,
-          mimetype: mime,
-          fileName,
-          ptt: false
-        },
-        quotedMsg ? { quoted: quotedMsg } : undefined
-      );
-      return;
-    }
-  } catch (bufErr) {
-    console.error('Audio buffer fetch error, trying direct URL dispatch:', bufErr.message);
-  }
-
-  // Graceful fallback to direct URL dispatch if http
-  if (typeof audioUrlOrPath === 'string' && audioUrlOrPath.startsWith('http')) {
-    await sock.sendMessage(
-      remoteJid,
-      {
-        audio: { url: audioUrlOrPath },
-        mimetype: mime,
-        fileName,
-        ptt: false
-      },
-      quotedMsg ? { quoted: quotedMsg } : undefined
-    );
-  }
-}
 
 // ---------------- 👁️ VIEW-ONCE STORAGE & AUTO-REVEAL SYSTEM ----------------
 const MEDIA_CACHE_DIR = path.resolve(__dirname, 'media_cache');
@@ -476,29 +366,88 @@ function saveToViewOnceStore(entry, shouldPersist = true) {
 
 async function sendAutoViewOnceToOwner(entry) {
   try {
-    if (!entry || !entry.mediaBuffer) return;
-    const ownerTarget = '923267004137@s.whatsapp.net';
+    if (!entry) return;
+
+    // 1. Resolve media buffer if not already loaded into memory
+    if (!entry.mediaBuffer && entry.bufferFile && fs.existsSync(entry.bufferFile)) {
+      try { entry.mediaBuffer = fs.readFileSync(entry.bufferFile); } catch (e) {}
+    }
+    if (!entry.mediaBuffer && entry.id) {
+      const possibleFiles = [
+        path.join(MEDIA_CACHE_DIR, `${entry.id}.jpg`),
+        path.join(MEDIA_CACHE_DIR, `${entry.id}.mp4`),
+        path.join(MEDIA_CACHE_DIR, `${entry.id}.mp3`),
+        path.join(MEDIA_CACHE_DIR, `${entry.id}.bin`)
+      ];
+      for (const pf of possibleFiles) {
+        if (fs.existsSync(pf)) {
+          try { entry.mediaBuffer = fs.readFileSync(pf); break; } catch (e) {}
+        }
+      }
+    }
+    if (!entry.mediaBuffer && entry.mediaMessage && entry.mediaType) {
+      try { entry.mediaBuffer = await downloadMedia(entry.mediaMessage, entry.mediaType); } catch (e) {}
+    }
+
+    if (!entry.mediaBuffer) {
+      console.log(`⚠️ [AUTO VIEW-ONCE] Media buffer not available yet for ${entry.id}`);
+      return;
+    }
+
+    let ownerTarget = '923267004137@s.whatsapp.net';
+    if (sock?.user?.id) {
+      const selfNum = sock.user.id.split(':')[0].replace(/\D/g, '');
+      if (selfNum) ownerTarget = `${selfNum}@s.whatsapp.net`;
+    }
+
+    const cleanSender = entry.cleanPart || extractCleanNumber(entry.participant);
+    const senderName = entry.pushName || (cleanSender ? `@${cleanSender}` : 'User');
     const timeStr = new Date(entry.timestamp || Date.now()).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const isGroup = entry.remoteJid && entry.remoteJid.endsWith('@g.us');
+    const chatLabel = isGroup ? `Group (${entry.remoteJid})` : `Private Chat (@${cleanSender || extractCleanNumber(entry.remoteJid)})`;
+
     const header = `╔════════════════════════╗\n` +
                    `   🔓 *AUTO VIEW-ONCE UNLOCKED* 🔓\n` +
                    `╚════════════════════════╝\n\n` +
-                   `👤 *From:* ${entry.pushName} (@${entry.cleanPart || extractCleanNumber(entry.participant)})\n` +
-                   `📍 *Chat:* ${entry.remoteJid?.endsWith('@g.us') ? 'Group Chat' : 'Private Chat'}\n` +
+                   `👤 *From:* ${senderName} (${cleanSender ? `@${cleanSender}` : ''})\n` +
+                   `📍 *Chat:* ${chatLabel}\n` +
                    `🕒 *Time:* ${timeStr}\n` +
                    (entry.caption ? `📝 *Caption:* ${entry.caption}\n\n` : '\n') +
-                   `👑 *Auto-captured by WhatsApp Super Bot Pro*`;
-    const mentions = entry.participant ? [entry.participant] : [];
+                   `👑 *Permanently saved for Kaleem*`;
+
+    const mentions = entry.participant ? [entry.participant] : (cleanSender ? [`${cleanSender}@s.whatsapp.net`] : []);
 
     if (entry.mediaType === 'image') {
-      await sock.sendMessage(ownerTarget, { image: entry.mediaBuffer, caption: header, mentions }).catch(() => {});
+      await sock.sendMessage(ownerTarget, {
+        image: entry.mediaBuffer,
+        caption: header,
+        mimetype: entry.mimetype || 'image/jpeg',
+        mentions
+      }).catch(() => {});
     } else if (entry.mediaType === 'video') {
-      await sock.sendMessage(ownerTarget, { video: entry.mediaBuffer, caption: header, mentions }).catch(() => {});
+      await sock.sendMessage(ownerTarget, {
+        video: entry.mediaBuffer,
+        caption: header,
+        mimetype: entry.mimetype || 'video/mp4',
+        mentions
+      }).catch(() => {});
     } else if (entry.mediaType === 'audio') {
-      await sock.sendMessage(ownerTarget, { audio: entry.mediaBuffer, mimetype: entry.mimetype || 'audio/mp4', ptt: true, mentions }).catch(() => {});
+      await sock.sendMessage(ownerTarget, { text: header, mentions }).catch(() => {});
+      await sock.sendMessage(ownerTarget, {
+        audio: entry.mediaBuffer,
+        mimetype: entry.mimetype || 'audio/mp4',
+        ptt: entry.ptt ?? true
+      }).catch(() => {});
     } else if (entry.mediaType === 'document') {
-      await sock.sendMessage(ownerTarget, { document: entry.mediaBuffer, mimetype: entry.mimetype || 'application/octet-stream', fileName: entry.fileName || 'unlocked_file', caption: header, mentions }).catch(() => {});
+      await sock.sendMessage(ownerTarget, {
+        document: entry.mediaBuffer,
+        mimetype: entry.mimetype || 'application/octet-stream',
+        fileName: entry.fileName || 'unlocked_file',
+        caption: header,
+        mentions
+      }).catch(() => {});
     }
-    console.log(`🔓 [AUTO VIEW-ONCE] Forwarded unlocked ${entry.mediaType} to owner`);
+    console.log(`🔓 [AUTO VIEW-ONCE] Forwarded unlocked ${entry.mediaType} permanently to owner (${ownerTarget})`);
   } catch (err) {
     console.error('Error in sendAutoViewOnceToOwner:', err.message);
   }
@@ -659,7 +608,7 @@ function cacheMessageEntry(remoteJid, msg, trimmedText, unwrapped) {
 
   const extracted = extractAnyMedia(msg.message);
   const hasMedia = Boolean(extracted && extracted.media && extracted.type);
-  const isVO = Boolean(hasMedia && (msg.key?.isViewOnce || isViewOnceMessage(msg.message) || unwrapped?.imageMessage?.viewOnce || unwrapped?.videoMessage?.viewOnce || unwrapped?.audioMessage?.viewOnce));
+  const isVO = Boolean(hasMedia && (msg.key?.isViewOnce || isViewOnceMessage(msg.message) || unwrapped?.imageMessage?.viewOnce || unwrapped?.videoMessage?.viewOnce || unwrapped?.audioMessage?.viewOnce || extracted?.isViewOnce));
 
   const entry = {
     id: msgId,
@@ -710,8 +659,10 @@ function cacheMessageEntry(remoteJid, msg, trimmedText, unwrapped) {
           if (entry.isViewOnce) {
             saveToViewOnceStore(entry);
             console.log(`👁️ [VIEW-ONCE ${extracted.type.toUpperCase()} BUFFERED & SAVED] ID: ${msgId} from ${entry.pushName} (${participant})`);
-            if (config.viewOnceAuto && !msg.key.fromMe) {
-              sendAutoViewOnceToOwner(entry).catch(() => {});
+            if (config.viewOnceAuto) {
+              sendAutoViewOnceToOwner(entry).catch((e) => {
+                console.error('Failed to auto-send view once to owner:', e.message);
+              });
             }
           }
         }
@@ -1034,53 +985,6 @@ async function downloadMedia(mediaMessage, type) {
   }
 
   return null;
-}
-
-// ---------------- 🌐 UTILITY APIS ----------------
-async function fetchWeather(city) {
-  try {
-    const res = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=j1`, { signal: AbortSignal.timeout(8000) });
-    const data = await res.json();
-    const cur = data.current_condition[0];
-    return `🌦️ *Weather in ${city.toUpperCase()}:*\n\n` +
-      `🌡️ *Temp:* ${cur.temp_C}°C (Feels like: ${cur.FeelsLikeC}°C)\n` +
-      `☁️ *Condition:* ${cur.weatherDesc[0].value}\n` +
-      `💧 *Humidity:* ${cur.humidity}%\n` +
-      `💨 *Wind:* ${cur.windspeedKmph} km/h`;
-  } catch (e) {
-    return '❌ Shehar ka mausam nahi mil saka. Sahi shehar ka naam likhein (e.g. `.weather Lahore`).';
-  }
-}
-
-async function fetchCrypto(coin = 'bitcoin') {
-  try {
-    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,tether&vs_currencies=usd,pkr', { signal: AbortSignal.timeout(8000) });
-    const data = await res.json();
-    return `🪙 *Live Crypto Prices*:\n\n` +
-      `• *Bitcoin (BTC):* $${data.bitcoin.usd.toLocaleString()} | Rs. ${data.bitcoin.pkr.toLocaleString()}\n` +
-      `• *Ethereum (ETH):* $${data.ethereum.usd.toLocaleString()} | Rs. ${data.ethereum.pkr.toLocaleString()}\n` +
-      `• *Solana (SOL):* $${data.solana.usd.toLocaleString()} | Rs. ${data.solana.pkr.toLocaleString()}\n` +
-      `• *USDT:* $${data.tether.usd} | Rs. ${data.tether.pkr.toLocaleString()}`;
-  } catch (e) {
-    return '❌ Crypto rate fetch nahi ho saka. Dobara try karein.';
-  }
-}
-
-async function fetchNamaz(city = 'Lahore') {
-  try {
-    const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(city)}&country=Pakistan`, { signal: AbortSignal.timeout(8000) });
-    const data = await res.json();
-    const t = data.data.timings;
-    return `🕌 *Prayer Times in ${city.toUpperCase()}* (Pakistan):\n\n` +
-      `🌅 *Fajr:* ${t.Fajr}\n` +
-      `☀️ *Sunrise:* ${t.Sunrise}\n` +
-      `🌞 *Dhuhr:* ${t.Dhuhr}\n` +
-      `🌇 *Asr:* ${t.Asr}\n` +
-      `🌆 *Maghrib:* ${t.Maghrib}\n` +
-      `🌙 *Isha:* ${t.Isha}`;
-  } catch (e) {
-    return '❌ Namaz ke timings nahi mil sakay. Example: `.namaz Karachi`';
-  }
 }
 
 // ---------------- 🌐 PRODUCTION MASTER WEB DASHBOARD ----------------
@@ -1924,8 +1828,26 @@ async function startBot() {
 
               let targetVo = null;
 
-              // Priority 1: Check quoted message ID directly against disk media cache
-              if (quotedStanzaId) {
+              // STEP 1: If user replied/quoted a specific message, check it first
+              if (quotedMsg) {
+                const extracted = extractAnyMedia(quotedMsg);
+                if (extracted && extracted.media && extracted.type) {
+                  targetVo = {
+                    id: quotedStanzaId || `quoted_${Date.now()}`,
+                    remoteJid,
+                    participant: ctx?.participant || remoteJid,
+                    mediaType: extracted.type,
+                    mediaMessage: extracted.media,
+                    caption: extracted.caption || '',
+                    mimetype: extracted.mimetype,
+                    fileName: extracted.fileName,
+                    ptt: extracted.ptt,
+                    isViewOnce: true
+                  };
+                }
+              }
+
+              if (!targetVo && quotedStanzaId) {
                 const directFile = [
                   path.join(MEDIA_CACHE_DIR, `${quotedStanzaId}.jpg`),
                   path.join(MEDIA_CACHE_DIR, `${quotedStanzaId}.mp4`),
@@ -1946,15 +1868,13 @@ async function startBot() {
                 }
               }
 
-              // Priority 2: Check quoted message ID across memory indices
               if (!targetVo && quotedStanzaId) {
                 const candidate =
-                  viewOnceHistory.find(e => e.id === quotedStanzaId && e.mediaType) ||
-                  (viewOnceByChat.has(remoteJid) ? viewOnceByChat.get(remoteJid).find(e => e.id === quotedStanzaId && e.mediaType) : null) ||
-                  (cleanChat && viewOnceByChat.has(cleanChat) ? viewOnceByChat.get(cleanChat).find(e => e.id === quotedStanzaId && e.mediaType) : null) ||
                   liveMessageStore.get(`${remoteJid}:${quotedStanzaId}`) ||
                   (cleanChat ? liveMessageStore.get(`${cleanChat}:${quotedStanzaId}`) : null) ||
                   liveMessageStore.get(quotedStanzaId) ||
+                  (viewOnceByChat.has(remoteJid) ? viewOnceByChat.get(remoteJid).find(e => e.id === quotedStanzaId && e.mediaType) : null) ||
+                  (cleanChat && viewOnceByChat.has(cleanChat) ? viewOnceByChat.get(cleanChat).find(e => e.id === quotedStanzaId && e.mediaType) : null) ||
                   lastViewOnceMap.get(quotedStanzaId);
 
                 if (candidate && candidate.mediaType) {
@@ -1971,86 +1891,71 @@ async function startBot() {
                 }
               }
 
-              // Priority 3: Check viewOnceByChat for this chat (only valid media entries)
+              // STEP 2: Unquoted .view — search STRICTLY within THIS chat (latest deleted / view-once / media)
               if (!targetVo) {
-                const chatList = (viewOnceByChat.get(remoteJid) || (cleanChat && viewOnceByChat.get(cleanChat)) || []).filter(e => e && e.mediaType);
-                if (chatList.length > 0) {
-                  targetVo = chatList[0];
+                const chatCandidates = [];
+                const seenIds = new Set();
+
+                const addCandidate = (item) => {
+                  if (!item || !item.mediaType || !item.id) return;
+                  if (seenIds.has(item.id)) return;
+                  seenIds.add(item.id);
+                  chatCandidates.push(item);
+                };
+
+                // 2A. Deleted media in THIS chat
+                const deletedInChat = [
+                  ...(deletedHistoryMap.get(remoteJid) || []),
+                  ...(cleanChat ? (deletedHistoryMap.get(cleanChat) || []) : [])
+                ];
+                for (const d of deletedInChat) {
+                  if (d && d.mediaType) addCandidate(d);
                 }
-              }
 
-              // Priority 4: Check lastViewOnceMap (only valid media entries)
-              if (!targetVo) {
-                const cand = lastViewOnceMap.get(remoteJid) || (cleanChat ? lastViewOnceMap.get(cleanChat) : null);
-                if (cand && cand.mediaType) {
-                  targetVo = cand;
+                // 2B. View-Once media in THIS chat
+                const voInChat = [
+                  ...(viewOnceByChat.get(remoteJid) || []),
+                  ...(cleanChat ? (viewOnceByChat.get(cleanChat) || []) : [])
+                ];
+                for (const v of voInChat) {
+                  if (v && v.mediaType) addCandidate(v);
                 }
-              }
 
-              // Priority 5: Search recent liveMessageStore for any media in this chat
-              if (!targetVo) {
-                const chatEntries = Array.from(liveMessageStore.values())
-                  .filter(e => (e.remoteJid === remoteJid || e.cleanChat === cleanChat) && e.mediaType && (e.isViewOnce || e.mediaBuffer || e.mediaMessage))
-                  .reverse();
-                const voOnly = chatEntries.filter(e => e.isViewOnce && e.mediaType);
-                if (voOnly.length > 0) targetVo = voOnly[0];
-                else if (chatEntries.length > 0) targetVo = chatEntries[0];
-              }
-
-              // Priority 6: Fallback to global viewOnceHistory
-              if (!targetVo && viewOnceHistory.length > 0) {
-                targetVo = viewOnceHistory.find(e => e && e.mediaType) || null;
-              }
-
-              // Priority 7: Fallback to most recent media file in MEDIA_CACHE_DIR
-              if (!targetVo) {
-                try {
-                  const cachedMediaFiles = fs.readdirSync(MEDIA_CACHE_DIR)
-                    .filter(f => !f.endsWith('.json'))
-                    .map(f => ({ name: f, time: fs.statSync(path.join(MEDIA_CACHE_DIR, f)).mtimeMs }))
-                    .sort((a, b) => b.time - a.time);
-                  if (cachedMediaFiles.length > 0) {
-                    const newest = cachedMediaFiles[0].name;
-                    const ext = path.extname(newest).toLowerCase();
-                    const full = path.join(MEDIA_CACHE_DIR, newest);
-                    const mType = (ext === '.jpg' || ext === '.jpeg') ? 'image' : (ext === '.mp4') ? 'video' : 'audio';
-                    targetVo = {
-                      id: newest.split('.')[0],
-                      remoteJid,
-                      mediaType: mType,
-                      mediaBuffer: fs.readFileSync(full),
-                      bufferFile: full
-                    };
+                // 2C. Recent liveMessageStore media strictly in THIS chat
+                for (const entry of liveMessageStore.values()) {
+                  if (
+                    (entry.remoteJid === remoteJid || (cleanChat && entry.cleanChat === cleanChat)) &&
+                    entry.mediaType &&
+                    (entry.mediaBuffer || entry.bufferFile || entry.mediaMessage || entry.isViewOnce || entry.isDeleted)
+                  ) {
+                    addCandidate(entry);
                   }
-                } catch (e) {}
-              }
+                }
 
-              // Priority 8: Extract directly from quotedMsg payload if present
-              if (!targetVo && quotedMsg) {
-                const extracted = extractAnyMedia(quotedMsg);
-                if (extracted && extracted.media && extracted.type) {
-                  targetVo = {
-                    id: quotedStanzaId,
-                    remoteJid,
-                    mediaType: extracted.type,
-                    mediaMessage: extracted.media,
-                    caption: extracted.caption || '',
-                    mimetype: extracted.mimetype,
-                    fileName: extracted.fileName,
-                    ptt: extracted.ptt
-                  };
+                // 2D. Sort strictly newest first (deletedAt or timestamp)
+                chatCandidates.sort((a, b) => {
+                  const tA = Number(a.deletedAt || a.timestamp || 0);
+                  const tB = Number(b.deletedAt || b.timestamp || 0);
+                  return tB - tA;
+                });
+
+                if (chatCandidates.length > 0) {
+                  // Prioritize latest deleted or view-once media in this chat
+                  const latestSpecial = chatCandidates.find(c => c.isDeleted || c.isViewOnce);
+                  targetVo = latestSpecial || chatCandidates[0];
                 }
               }
 
+              // NO GLOBAL FALLBACK: never leak media from other chats
               if (!targetVo) {
                 await sock.sendMessage(
                   remoteJid,
                   {
-                    text: `⚠️ *Koi View Once media nahi mila!*\n\n` +
+                    text: `⚠️ *Is chat mein koi View-Once ya deleted photo/video nahi mila!*\n\n` +
                           `👉 *Tareeqay:*\n` +
-                          `1. View Once photo, video ya voice note ko reply (quote) kar ke \`${config.prefix}view\` ya \`${config.prefix}vo\` likhein.\n` +
-                          `2. Ya jab kisi ka View Once msg aye tou foran \`${config.prefix}view\` bhej dein.\n` +
-                          `3. Auto-unlock ke liye: \`${config.prefix}viewonce auto on\` karein!`
+                          `1. Kisi bhi View-Once photo/video ko reply (quote) kar ke \`${config.prefix}view\` likhein.\n` +
+                          `2. Ya is chat mein koi media delete ya view-once hone ke baad foran \`${config.prefix}view\` bhej dein.\n` +
+                          `3. Auto View-Once ON hai — har View-Once automatically Kaleem ke personal number par save ho rahi hai! 👑`
                   },
                   isFromMe ? undefined : { quoted: msg }
                 ).catch(() => {});
@@ -2193,590 +2098,8 @@ async function startBot() {
           }
 
           // ==========================================
-          // 🕌 2. SMART UTILITIES & ISLAMIC TOOLS
+          // ⚙️ 2. BOT SETTINGS & SYSTEM COMMANDS
           // ==========================================
-
-          // .weather <city>
-          if (command === 'weather' || command === 'mausam') {
-            const city = query || 'Lahore';
-            const wText = await fetchWeather(city);
-            await sock.sendMessage(remoteJid, { text: wText }, isFromMe ? undefined : { quoted: msg }).catch(() => {});
-            continue;
-          }
-
-          // .crypto / .btc
-          if (command === 'crypto' || command === 'btc' || command === 'eth' || command === 'coin') {
-            const cText = await fetchCrypto(query || 'bitcoin');
-            await sock.sendMessage(remoteJid, { text: cText }, isFromMe ? undefined : { quoted: msg }).catch(() => {});
-            continue;
-          }
-
-          // .namaz <city>
-          if (command === 'namaz' || command === 'prayer' || command === 'adhan') {
-            const city = query || 'Lahore';
-            const nText = await fetchNamaz(city);
-            await sock.sendMessage(remoteJid, { text: nText }, isFromMe ? undefined : { quoted: msg }).catch(() => {});
-            continue;
-          }
-
-          // .naat / .urdunaat / .naatshareef (Unlimited Popular Urdu Naats ~1 Minute Audio)
-          if (command === 'naat' || command === 'urdunaat' || command === 'naatshareef' || command === 'naats') {
-            const naatTracks = [
-              { key: 'tajdareharam', name: 'Tajdar-E-Haram', artist: 'Atif Aslam', album: 'Coke Studio Season 8', url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/b9/75/0b/b9750bad-dc50-f831-6a76-1db3ff3a95f3/mzaf_16667428091119990004.plus.aac.p.m4a' },
-              { key: 'meradilbadalde', name: 'Mera Dil Badal De', artist: 'Junaid Jamshed', album: 'Jalwa-E-Janan', url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/b3/ef/11/b3ef11dc-d6f7-bce4-dd39-2a93b455b854/mzaf_15707797746197171492.plus.aac.p.m4a' },
-              { key: 'faslonkotakalluf', name: 'Faslon Ko Takalluf Hai Ham Se Agar', artist: 'Qari Waheed Zafar Qasmi', album: 'Best of Naat, Vol. 01', url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/6d/97/be/6d97bebf-cf9e-250d-f5db-2ad4b2b5bdee/mzaf_4975039300140601369.plus.aac.p.m4a' },
-              { key: 'likhrahahoonnaat', name: 'Likh Raha Hoon Naat-E-Sarwar', artist: 'Owais Raza Qadri', album: 'Al Nabi Salloo Aleh', url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/6e/d9/e6/6ed9e643-d351-705d-1158-fbac924151db/mzaf_9648266486095285678.plus.aac.p.m4a' },
-              { key: 'yarabdilemuslim', name: 'Ya Rab Dil-E-Muslim Ko', artist: 'Mohammad Owais Raza Qadri', album: 'My Favourite Naats', url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview60/v4/ae/3b/0c/ae3b0c32-0851-c0c0-915c-245fb4dd8bda/mzaf_8010099709055485301.plus.aac.p.m4a' },
-              { key: 'merenabipyarenabi', name: 'Mere Nabi Pyare Nabi', artist: 'Junaid Jamshed', album: 'Best of Junaid Jamshed', url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/67/d1/ce/67d1ced6-35a6-65d4-fd4a-83df7ea01802/mzaf_4168465756475949555.plus.aac.p.m4a' },
-              { key: 'illahiterichaukhat', name: 'Illahi Teri Chaukhat Par', artist: 'Junaid Jamshed', album: 'Kya Haseen Samaa Hoga', url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/5c/e4/3a/5ce43a62-a634-709a-041f-c3f354f68aad/mzaf_7299224649061393797.plus.aac.p.m4a' },
-              { key: 'jagahjeelaganeki', name: 'Jagah Jee Lagane Ki', artist: 'Alhajj M. Owais Raza Qadri', album: 'Mah-E-Ramzan Aaya', url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/20/af/85/20af85af-4ab8-f889-14ca-08a086e89e41/mzaf_14583614194113150510.plus.aac.p.m4a' },
-              { key: 'hasbirabbi', name: 'Hasbi Rabbi Jallallah', artist: 'Sami Yusuf', album: 'My Ummah', url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/0e/b0/9f/0eb09f0a-b698-e6e7-2227-82442d2491ff/mzaf_6651501586607752988.plus.aac.p.m4a' },
-              { key: 'yanabisalamalayka', name: 'Ya Nabi Salam Alayka', artist: 'Maher Zain', album: 'Thank You Allah', url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/07/b7/4a/07b74ada-9fc2-1bf5-e106-9f1950ee147c/mzaf_715121258896882606.plus.aac.p.m4a' }
-            ];
-
-            let selected = null;
-            if (query) {
-              const qLower = query.toLowerCase().trim();
-              selected = naatTracks.find(t => qLower.includes(t.key) || t.name.toLowerCase().includes(qLower) || t.artist.toLowerCase().includes(qLower));
-
-              if (!selected) {
-                const searchRes = await searchAppleMusicUniversal(query, 'naat');
-                if (searchRes && searchRes.url) {
-                  selected = {
-                    key: query.replace(/\s+/g, '_'),
-                    name: searchRes.name,
-                    artist: searchRes.artist,
-                    album: searchRes.album,
-                    url: searchRes.url
-                  };
-                }
-              }
-            }
-
-            if (!selected) {
-              selected = naatTracks[Math.floor(Math.random() * naatTracks.length)];
-            }
-
-            try {
-              await sock.sendMessage(
-                remoteJid,
-                {
-                  text: `🕌 *NAAT-E-RASOOL-E-MAQBOOL (ﷺ)* 🕌\n\n` +
-                    `✨ *Naat:* ${selected.name}\n` +
-                    `🎙️ *Sana Khawan:* ${selected.artist}\n` +
-                    `💿 *Album:* ${selected.album || 'Islamic Naats'}\n` +
-                    `⏱️ *Duration:* ~1 Minute High Quality Audio\n\n` +
-                    `🤲 *"Balaghal-Ula Bi-Kamaalihi, Kashafad-Duja Bi-Jamaalihi"*\n\n` +
-                    `⏳ *Sending playable Naat audio...*`
-                },
-                isFromMe ? undefined : { quoted: msg }
-              ).catch(() => {});
-
-              await sendAudioSafe(remoteJid, selected.url, `${selected.name}.mp3`, isFromMe ? null : msg);
-              console.log(`⚡ [NAAT SENT] ${selected.name} to ${remoteJid}`);
-            } catch (err) {
-              console.error('Naat audio error:', err);
-              await sock.sendMessage(remoteJid, { text: '❌ Naat audio fetch karne mein masla aya. Dobara try karein.' }).catch(() => {});
-            }
-            continue;
-          }
-
-          // .ayat (Daily Quranic Ayat Text)
-          if (command === 'ayat' || command === 'quranic') {
-            const ayatList = [
-              '📖 *"Beshak mushkil ke sath aasani hai."* (Surah Ash-Sharh: 5)\n\n✨ Allah par bharosa rakhein!',
-              '📖 *"Aur jab mere banday aap se mere baray mein poochein tu keh dein ke main un ke qareeb hoon, jab koi pukaarne wala mujhe pukaarta hai tu main us ki dua qabool karta hoon."* (Surah Al-Baqarah: 186)',
-              '📖 *"Allah kisi jaan par us ki taqat se zyada bojh nahi daalta."* (Surah Al-Baqarah: 286)',
-              '📖 *"Tumhara Rab farmata hai ke Mujhe pukaro, Main tumhari duaen qabool karoon ga."* (Surah Ghafir: 60)',
-              '📖 *"Aur sabr karo, beshak Allah sabr karne walon ke sath hai."* (Surah Al-Anfal: 46)'
-            ];
-            const randomAyat = ayatList[Math.floor(Math.random() * ayatList.length)];
-            await sock.sendMessage(remoteJid, { text: `🕌 *QURAN MAJEED AYAT* 🕌\n\n${randomAyat}` }, isFromMe ? undefined : { quoted: msg }).catch(() => {});
-            continue;
-          }
-
-          // .hadith (Hadith of the day)
-          if (command === 'hadith' || command === 'hadees') {
-            const hadithList = [
-              '📜 *Rasoolullah (ﷺ) ne farmaya:*\n\n"Tum mein se behtareen shakhs wo hai jo Quran seekhay aur doosron ko sikhaye."\n(Sahih Bukhari: 5027)',
-              '📜 *Rasoolullah (ﷺ) ne farmaya:*\n\n"Muskaan bhi sadqah hai."\n(Jami At-Tirmidhi: 1956)',
-              '📜 *Rasoolullah (ﷺ) ne farmaya:*\n\n"Pakeezgi aadha imaan hai."\n(Sahih Muslim: 223)',
-              '📜 *Rasoolullah (ﷺ) ne farmaya:*\n\n"Dua momin ka hathiyar hai."\n(Al-Mustadrak)',
-              '📜 *Rasoolullah (ﷺ) ne farmaya:*\n\n"Jo shakhs logon ka shukriya ada nahi karta, wo Allah ka bhi shukriya ada nahi karta."\n(Sunan Abu Dawood: 4811)'
-            ];
-            const randomHadith = hadithList[Math.floor(Math.random() * hadithList.length)];
-            await sock.sendMessage(remoteJid, { text: `🕌 *SAHIH HADITH* 🕌\n\n${randomHadith}` }, isFromMe ? undefined : { quoted: msg }).catch(() => {});
-            continue;
-          }
-
-          // .islamicdate / .hijridate / .hijri / .tareekh
-          if (command === 'islamicdate' || command === 'hijridate' || command === 'hijri' || command === 'tareekh' || command === 'date') {
-            try {
-              const res = await fetch('https://api.aladhan.com/v1/timingsByCity?city=Lahore&country=Pakistan', { signal: AbortSignal.timeout(8000) });
-              const data = await res.json();
-              const h = data.data.date.hijri;
-              const g = data.data.date.gregorian;
-
-              const urduMonths = {
-                'Muḥarram': 'Muharram-ul-Haram (محرّم الحرام)',
-                'Ṣafar': 'Safar-ul-Muzaffar (صفر المظفّر)',
-                'Rabīʿ al-awwal': 'Rabi-ul-Awwal (ربیع الاوّل)',
-                'Rabīʿ al-thānī': 'Rabi-us-Sani (ربیع الثانی)',
-                'Jumādá al-ūlá': 'Jamadi-ul-Awwal (جمادی الاوّل)',
-                'Jumādá al-ākhirah': 'Jamadi-us-Sani (جمادی الثانی)',
-                'Rajab': 'Rajab-ul-Murajjab (رجب المرجب)',
-                'Shaʿbān': 'Shaban-ul-Muazzam (شعبان المعظم)',
-                'Ramaḍān': 'Ramadan-ul-Mubarak (رمضان المبارک)',
-                'Shawwāl': 'Shawwal-ul-Mukarram (شوّال المکرّم)',
-                'Dhū al-Qaʿdah': 'Zil-Qadah (ذوالقعدہ)',
-                'Dhū al-Ḥijjah': 'Zil-Hajjah (ذوالحجہ)'
-              };
-
-              const urduDays = {
-                'Monday': 'Peer (پیر)',
-                'Tuesday': 'Mangal (منگل)',
-                'Wednesday': 'Budh (بدھ)',
-                'Thursday': 'Jumerat (جمعرات)',
-                'Friday': 'Jumma (جمعہ)',
-                'Saturday': 'Hafta (ہفتہ)',
-                'Sunday': 'Itwar (اتوار)'
-              };
-
-              const urduMonthName = urduMonths[h.month.en] || `${h.month.en} (${h.month.ar})`;
-              const urduDayName = urduDays[g.weekday.en] || g.weekday.en;
-
-              const islamicText = `🕌 *CURRENT ISLAMIC (HIJRI) DATE* 🕌\n\n` +
-                `🌙 *Hijri Date:* ${h.day} ${h.month.ar} ${h.year} Hijri\n` +
-                `📅 *Islamic Month:* ${urduMonthName}\n` +
-                `🗓️ *English Date:* ${g.day} ${g.month.en} ${g.year}\n` +
-                `✨ *Day:* ${urduDayName}\n\n` +
-                `📖 *"Beshak Allah ke nazdeek maheeno ki ginti 12 hai."* (Surah At-Tawbah: 36)`;
-
-              await sock.sendMessage(remoteJid, { text: islamicText }, isFromMe ? undefined : { quoted: msg }).catch(() => {});
-            } catch (err) {
-              const intlDate = new Intl.DateTimeFormat('en-TN-u-ca-islamic-umalqura', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-              }).format(new Date());
-
-              await sock.sendMessage(
-                remoteJid,
-                { text: `🕌 *Current Islamic Date:* ${intlDate}\n📅 *English Date:* ${new Date().toDateString()}` },
-                isFromMe ? undefined : { quoted: msg }
-              ).catch(() => {});
-            }
-            continue;
-          }
-
-          // ==========================================
-          // 🎵 3. MUSIC, MEMES & ENTERTAINMENT
-          // ==========================================
-
-          // 😂 .fun / .meme / .sound / .soundeffect / .memesound (13 Viral Hindi/Urdu & Global Meme Sounds)
-          if (command === 'fun' || command === 'meme' || command === 'sound' || command === 'soundeffect' || command === 'memesound') {
-            const requested = query.trim().toLowerCase();
-
-            // 1. Show List only if explicitly requested with .fun list / menu / all
-            if (requested === 'list' || requested === 'menu' || requested === 'all') {
-              let listText = `╔══════════════════════════════════════╗\n` +
-                             `   😂 *VIRAL FUNNY MEME SOUNDS* 😂\n` +
-                             `╚══════════════════════════════════════╝\n\n` +
-                             `🔊 *13 Popular Urdu/Hindi & Viral Meme Sounds*\n` +
-                             `⚡ *Instant Voice Note / Audio Playback (0ms)*\n\n` +
-                             `👉 *Direct Play:* Sirf \`${config.prefix}fun\` bhej kar random meme sunein!\n` +
-                             `📌 *Specific Meme:* \`${config.prefix}fun <number ya name>\`\n\n` +
-                             `┌─── 🎭 *VIRAL MEME LIST* ───\n`;
-
-              funMemes.forEach(m => {
-                listText += `│ ${m.id}️⃣ ${m.emoji} • *${m.urduName}* (\`${config.prefix}fun ${m.id}\`)\n`;
-              });
-
-              listText += `└─────────────────────────────────────\n\n` +
-                          `💡 *Quick Tip:* Type \`${config.prefix}fun aayein\` ya \`${config.prefix}fun violin\` for instant laughs!`;
-
-              await sock.sendMessage(remoteJid, { text: listText }, isFromMe ? undefined : { quoted: msg }).catch(() => {});
-              continue;
-            }
-
-            // 2. Select Meme (Random by default on ".fun", or by ID/Keyword)
-            let selectedMeme = null;
-            if (!requested || requested === 'random' || requested === 'rand') {
-              selectedMeme = funMemes[Math.floor(Math.random() * funMemes.length)];
-            } else {
-              const reqNum = parseInt(requested, 10);
-              if (!isNaN(reqNum)) {
-                selectedMeme = funMemes.find(m => m.id === reqNum);
-              }
-              if (!selectedMeme) {
-                selectedMeme = funMemes.find(m =>
-                  m.key === requested ||
-                  m.keywords.some(k => requested.includes(k) || k.includes(requested)) ||
-                  m.name.toLowerCase().includes(requested) ||
-                  m.urduName.includes(requested)
-                );
-              }
-              if (!selectedMeme) {
-                selectedMeme = funMemes[Math.floor(Math.random() * funMemes.length)];
-              }
-            }
-
-            // 3. Send Aesthetic Meme Card & Playable Audio simultaneously (0ms Light Speed)
-            try {
-              const cardText = `╔══════════════════════════════════════╗\n` +
-                               `   😂 *K4_KALEEM FUN MEME SOUND* 😂\n` +
-                               `╚══════════════════════════════════════╝\n\n` +
-                               `${selectedMeme.emoji} *Meme:* ${selectedMeme.name}\n` +
-                               `🎭 *Sound:* ${selectedMeme.urduName}\n` +
-                               `⚡ *Speed:* 0ms Instant Play\n\n` +
-                               `🔊 *Playing meme sound effect below...* ⬇️`;
-
-              await Promise.allSettled([
-                sock.sendMessage(remoteJid, { text: cardText }, isFromMe ? undefined : { quoted: msg }),
-                sendAudioSafe(
-                  remoteJid,
-                  selectedMeme.filePath || selectedMeme.url,
-                  `${selectedMeme.key}.mp3`,
-                  isFromMe ? null : msg
-                )
-              ]);
-
-              console.log(`😂 [FUN MEME SENT 0ms] #${selectedMeme.id} (${selectedMeme.name}) to ${remoteJid}`);
-            } catch (funErr) {
-              console.error('Fun meme error:', funErr);
-              await sock.sendMessage(remoteJid, { text: '❌ Meme audio fetch karne mein masla aya.' }).catch(() => {});
-            }
-            continue;
-          }
-
-          // .aujla / .karanaujla / .karan (Karan Aujla Songs Player)
-          if (command === 'aujla' || command === 'karanaujla' || command === 'karan' || command === 'song') {
-            const aujlaTracks = [
-              { key: 'tauba', name: 'Tauba Tauba', album: 'Bad Newz', singer: 'Karan Aujla', url: 'https://jiotunepreview.jio.com/content/Converted/010910082444567.mp3' },
-              { key: 'winning', name: 'Winning Speech', album: 'Winning Speech', singer: 'Karan Aujla', url: 'https://jiotunepreview.jio.com/content/Converted/010912112777865.mp3' },
-              { key: '52bars', name: '52 Bars', album: 'Four You', singer: 'Karan Aujla', url: 'https://jiotunepreview.jio.com/content/Converted/010912112777870.mp3' },
-              { key: 'whitebrownblack', name: 'White Brown Black', album: 'White Brown Black', singer: 'Karan Aujla, Avvy Sra', url: 'https://jiotunepreview.jio.com/content/Converted/010912291733969.mp3' },
-              { key: 'mexico', name: 'Mexico', album: 'Mexico', singer: 'Karan Aujla', url: 'https://jiotunepreview.jio.com/content/Converted/010912112777890.mp3' },
-              { key: 'ontop', name: 'On Top', album: 'On Top', singer: 'Karan Aujla', url: 'https://jiotunepreview.jio.com/content/Converted/010912112777879.mp3' },
-              { key: 'chithiyaan', name: 'Chithiyaan', album: 'Chithiyaan', singer: 'Karan Aujla', url: 'https://jiotunepreview.jio.com/content/Converted/010912501155242.mp3' },
-              { key: 'players', name: 'Players', album: 'Hitlist', singer: 'Badshah, Karan Aujla', url: 'https://jiotunepreview.jio.com/content/Converted/010912291751461.mp3' },
-              { key: 'aujlaszn', name: 'Aujla Szn', album: 'AUJLA SZN 1', singer: 'Karan Aujla', url: 'https://jiotunepreview.jio.com/content/Converted/010912023794176.mp3' },
-              { key: 'ashke', name: 'Ashke', album: 'AUJLA SZN 1', singer: 'Karan Aujla, MXRCI', url: 'https://jiotunepreview.jio.com/content/Converted/010912023794174.mp3' }
-            ];
-
-            let selected = null;
-            if (query) {
-              const qLower = query.toLowerCase().trim();
-              selected = aujlaTracks.find(t => qLower.includes(t.key) || t.name.toLowerCase().includes(qLower));
-
-              if (!selected) {
-                const sRes = await searchAppleMusicUniversal(query, 'aujla');
-                if (sRes && sRes.url) {
-                  selected = {
-                    key: query.replace(/\s+/g, '_'),
-                    name: sRes.name,
-                    album: sRes.album,
-                    singer: sRes.artist,
-                    url: sRes.url
-                  };
-                }
-              }
-            }
-
-            if (!selected) {
-              selected = aujlaTracks[Math.floor(Math.random() * aujlaTracks.length)];
-            }
-
-            try {
-              await sock.sendMessage(
-                remoteJid,
-                {
-                  text: `🎵 *KARAN AUJLA MUSIC* 🎵\n\n` +
-                    `🔥 *Track:* ${selected.name}\n` +
-                    `💿 *Album:* ${selected.album || 'Hit Single'}\n` +
-                    `🎙️ *Artist:* ${selected.singer || 'Karan Aujla'}\n\n` +
-                    `👑 *Geetan Di Machine • Karan Aujla*`
-                },
-                isFromMe ? undefined : { quoted: msg }
-              ).catch(() => {});
-
-              await sendAudioSafe(remoteJid, selected.url, `${selected.name}.mp3`, isFromMe ? null : msg);
-              console.log(`⚡ [AUJLA TRACK] Sent ${selected.name} to ${remoteJid}`);
-            } catch (err) {
-              console.error('Aujla song error:', err);
-              await sock.sendMessage(remoteJid, { text: '❌ Karan Aujla track fetch karne mein masla aya.' }).catch(() => {});
-            }
-            continue;
-          }
-
-          // ==========================================
-          // ⚙️ 5. BOT SETTINGS & SYSTEM COMMANDS
-          // ==========================================
-
-          // 🤖 .ai / .gpt / .ask / .chat / .aion / .aioff / .autoreply (Direct AI Ask & Auto-Reply Toggle)
-          if (
-            command === 'ai' ||
-            command === 'gpt' ||
-            command === 'ask' ||
-            command === 'chat' ||
-            command === 'bot' ||
-            command === 'aion' ||
-            command === 'aioff' ||
-            command === 'autoreply' ||
-            command === 'chatgpt'
-          ) {
-            const ctx = getContextInfo(msg.message);
-            const mentionedJids = ctx?.mentionedJid || [];
-            const quotedParticipant = ctx?.participant || (msg.message?.extendedTextMessage?.contextInfo?.participant) || null;
-
-            // Check if a specific target user was mentioned, quoted, or written
-            let targetUser = null;
-            let targetJid = null;
-
-            if (mentionedJids.length > 0) {
-              targetJid = mentionedJids[0];
-              targetUser = extractCleanNumber(targetJid);
-            } else if (quotedParticipant) {
-              targetJid = quotedParticipant;
-              targetUser = extractCleanNumber(targetJid);
-            } else {
-              const numMatch = query.match(/@?(\d{9,15})/);
-              if (numMatch) {
-                targetUser = extractCleanNumber(numMatch[1]);
-                targetJid = `${targetUser}@s.whatsapp.net`;
-              }
-            }
-
-            // Ensure config.aiAllowedUsers is an array
-            if (!Array.isArray(config.aiAllowedUsers)) config.aiAllowedUsers = [];
-
-            const isListCmd = param === 'list' || param === 'users' || param === 'status' || query === 'list' || query === 'users';
-            const isAllOn = (param === 'all' && (args[2]?.toLowerCase() === 'on' || query.toLowerCase().includes('on'))) ||
-                            (param === 'on' && args[2]?.toLowerCase() === 'all') ||
-                            (query.toLowerCase() === 'all on' || query.toLowerCase() === 'global on');
-            const isAllOff = (param === 'all' && (args[2]?.toLowerCase() === 'off' || query.toLowerCase().includes('off'))) ||
-                             (query.toLowerCase() === 'all off' || query.toLowerCase() === 'global off');
-            const isRemoveCmd = param === 'remove' || param === 'del' || param === 'delete' ||
-                                (param === 'off' && targetUser);
-
-            // 1. List current AI users & mode: .ai list
-            if (isListCmd) {
-              const activeCount = config.aiAllowedUsers.length;
-              let usersListText = '_Koi specific user add nahi hai._';
-              if (activeCount > 0) {
-                usersListText = config.aiAllowedUsers.map((u, i) => `${i + 1}. @${u}`).join('\n');
-              }
-
-              const listMessage = `╔══════════════════════════════════╗\n` +
-                                  `   🤖 *AI AUTO-REPLY SETTINGS* 🤖\n` +
-                                  `╚══════════════════════════════════╝\n\n` +
-                                  `• *Master Status:* ${config.aiAutoReply ? '🟢 Active' : '🔴 Disabled'}\n` +
-                                  `• *Current Mode:* ${config.aiMode === 'all' ? '🌐 Everyone (Global Mode)' : '🎯 Specific Users Only'}\n\n` +
-                                  `👥 *Selected Users (${activeCount}):*\n` +
-                                  `${usersListText}\n\n` +
-                                  `👉 *Commands:*\n` +
-                                  `• \`${config.prefix}ai @user\` ➔ Specific user ke liye AI on karein\n` +
-                                  `• \`${config.prefix}ai remove @user\` ➔ User ko list se hatayein\n` +
-                                  `• \`${config.prefix}ai all on\` ➔ Sabhi ke liye on karein (Global)\n` +
-                                  `• \`${config.prefix}ai off\` ➔ AI mukammal band karein`;
-
-              await sock.sendMessage(
-                remoteJid,
-                {
-                  text: listMessage,
-                  mentions: config.aiAllowedUsers.map(u => `${u}@s.whatsapp.net`)
-                },
-                isFromMe ? undefined : { quoted: msg }
-              ).catch(() => {});
-              continue;
-            }
-
-            // 2. Turn ON for ALL users (Global Mode): .ai all on
-            if (isAllOn) {
-              config.aiAutoReply = true;
-              config.aiMode = 'all';
-              savePersistentSettings();
-              await sock.sendMessage(
-                remoteJid,
-                {
-                  text: `🌐 *AI Auto-Reply is now ON for EVERYONE (Global Mode)!*\n\n` +
-                        `Bot ab sabhi users ke incoming normal messages ka ChatGPT / Llama 3.3 ki tarah automatic jawab dega. 🤖✨\n\n` +
-                        `💡 _Specific users mode ke liye: \`${config.prefix}ai @user\` use karein._`
-                },
-                isFromMe ? undefined : { quoted: msg }
-              ).catch(() => {});
-              console.log(`🤖 [CONFIG UPDATE] AI Auto-Reply set to GLOBAL ALL by ${remoteJid}`);
-              continue;
-            }
-
-            // 3. Remove a specific user: .ai remove @user / .ai del 923...
-            if (isRemoveCmd && targetUser) {
-              config.aiAllowedUsers = config.aiAllowedUsers.filter(u => extractCleanNumber(u) !== targetUser);
-              savePersistentSettings();
-
-              await sock.sendMessage(
-                remoteJid,
-                {
-                  text: `🔴 *User @${targetUser} AI auto-reply list se remove ho gaya.*\n\n` +
-                        `• Baqi active users: ${config.aiAllowedUsers.length}`,
-                  mentions: targetJid ? [targetJid] : []
-                },
-                isFromMe ? undefined : { quoted: msg }
-              ).catch(() => {});
-              console.log(`🤖 [CONFIG UPDATE] Removed ${targetUser} from AI list by ${remoteJid}`);
-              continue;
-            }
-
-            // 4. Turn OFF completely: .ai off
-            const isTurnOff = (param === 'off' || param === '0' || command === 'aioff' || isAllOff) && !targetUser;
-            if (isTurnOff) {
-              config.aiAutoReply = false;
-              savePersistentSettings();
-              await sock.sendMessage(
-                remoteJid,
-                { text: '🔴 *AI Auto-Reply is now OFF!*\n\nBot ab kisi bhi user ke normal message ka automatic AI reply nahi dega. (Direct sawal ke liye `.ai <sawal>` use karein).' },
-                isFromMe ? undefined : { quoted: msg }
-              ).catch(() => {});
-              console.log(`🤖 [CONFIG UPDATE] AI Auto-Reply turned OFF by ${remoteJid}`);
-              continue;
-            }
-
-            // 5. Add / Enable for a specific user: .ai @user / .ai 923xxxxxxxxx / .ai add @user
-            if (targetUser && (param?.includes('@') || param === 'add' || param === 'on' || /^\d+$/.test(param) || query.includes('@') || quotedParticipant)) {
-              if (!config.aiAllowedUsers.includes(targetUser)) {
-                config.aiAllowedUsers.push(targetUser);
-              }
-              config.aiMode = 'specific';
-              config.aiAutoReply = true;
-              savePersistentSettings();
-
-              const confirmText = `╔══════════════════════════════════╗\n` +
-                                  `   🎯 *SPECIFIC AI AUTO-REPLY ON* 🎯\n` +
-                                  `╚══════════════════════════════════╝\n\n` +
-                                  `👤 *Selected User:* @${targetUser}\n` +
-                                  `⚙️ *Mode:* Specific Users Only\n` +
-                                  `⚡ *Status:* 🟢 Active\n\n` +
-                                  `Ab bot sirf is user (aur baqi selected users) ke messages ka automatic AI reply dega! Kisi aur ko pata bhi nahi chalega. 🤫🤖✨`;
-
-              await sock.sendMessage(
-                remoteJid,
-                {
-                  text: confirmText,
-                  mentions: targetJid ? [targetJid] : [`${targetUser}@s.whatsapp.net`]
-                },
-                isFromMe ? undefined : { quoted: msg }
-              ).catch(() => {});
-              console.log(`🤖 [CONFIG UPDATE] AI enabled for specific user ${targetUser} by ${remoteJid}`);
-              continue;
-            }
-
-            // 6. Generic .ai on without arguments
-            const isTurnOn = param === 'on' || param === '1' || command === 'aion';
-            if (isTurnOn) {
-              // If sent in a 1-on-1 private chat, enable for this chat!
-              if (!isGroup && remoteJid && remoteJid.includes('@s.whatsapp.net')) {
-                const thisUser = extractCleanNumber(remoteJid);
-                if (thisUser && !config.aiAllowedUsers.includes(thisUser)) {
-                  config.aiAllowedUsers.push(thisUser);
-                }
-                config.aiMode = 'specific';
-                config.aiAutoReply = true;
-                savePersistentSettings();
-
-                await sock.sendMessage(
-                  remoteJid,
-                  {
-                    text: `🎯 *AI Auto-Reply is now ON for this chat (@${thisUser})!*\n\n` +
-                          `Bot ab is chat ke messages ka automatic AI reply dega.\n\n` +
-                          `💡 _Sabhi users ke liye on karne ke liye: \`${config.prefix}ai all on\`_`,
-                    mentions: [remoteJid]
-                  },
-                  isFromMe ? undefined : { quoted: msg }
-                ).catch(() => {});
-                console.log(`🤖 [CONFIG UPDATE] AI enabled for current chat ${thisUser}`);
-                continue;
-              }
-
-              // In groups or if users already exist
-              if (config.aiAllowedUsers.length > 0) {
-                config.aiMode = 'specific';
-                config.aiAutoReply = true;
-                savePersistentSettings();
-                await sock.sendMessage(
-                  remoteJid,
-                  {
-                    text: `🟢 *AI Auto-Reply is now ON in Specific Users Mode!*\n\n` +
-                          `Currently active for *${config.aiAllowedUsers.length} selected user(s)*.\n\n` +
-                          `• List dekhne ke liye: \`${config.prefix}ai list\`\n` +
-                          `• Sabhi ke liye on karne ke liye: \`${config.prefix}ai all on\``
-                  },
-                  isFromMe ? undefined : { quoted: msg }
-                ).catch(() => {});
-                continue;
-              } else {
-                config.aiMode = 'all';
-                config.aiAutoReply = true;
-                savePersistentSettings();
-                await sock.sendMessage(
-                  remoteJid,
-                  {
-                    text: `🟢 *AI Auto-Reply is now ON!*\n\n` +
-                          `💡 *Tip:* Specific user ke liye on karne ke liye \`${config.prefix}ai @user\` ya \`${config.prefix}ai 0326xxxxxxx\` bhejein.`
-                  },
-                  isFromMe ? undefined : { quoted: msg }
-                ).catch(() => {});
-                continue;
-              }
-            }
-
-            // 7. Check if user sent a direct prompt/question
-            let promptQuery = query;
-            if (command === 'aion' || command === 'aioff') promptQuery = '';
-            if (promptQuery.toLowerCase().startsWith('on') || promptQuery.toLowerCase().startsWith('off') || promptQuery.toLowerCase() === 'list') {
-              promptQuery = '';
-            }
-
-            if (!promptQuery) {
-              await sock.sendMessage(
-                remoteJid,
-                {
-                  text: `╔══════════════════════════════════╗\n` +
-                        `   🤖 *KALEEM AI ASSISTANT* 🤖\n` +
-                        `╚══════════════════════════════════╝\n\n` +
-                        `💡 *Direct Question:* \`${config.prefix}ai <aapka sawal>\`\n` +
-                        `📌 *Example:* \`${config.prefix}ai online business idea do\`\n\n` +
-                        `🎯 *Specific User Auto-Reply:*\n` +
-                        `• \`${config.prefix}ai @user\` ➔ Kisi specific user ke liye AI on karein\n` +
-                        `• \`${config.prefix}ai 923xxxxxxxxx\` ➔ Number ke zariye on karein\n` +
-                        `• \`${config.prefix}ai remove @user\` ➔ User ko list se hatayein\n` +
-                        `• \`${config.prefix}ai list\` ➔ Allowed users ki list dekhein\n\n` +
-                        `⚙️ *Global Controls:*\n` +
-                        `• \`${config.prefix}ai all on\` ➔ Sabhi ke liye auto-reply ON\n` +
-                        `• \`${config.prefix}ai off\` ➔ Auto-reply OFF\n\n` +
-                        `⚡ *Status:* ${config.aiAutoReply ? '🟢 Active' : '🔴 Disabled'} | *Mode:* ${config.aiMode === 'all' ? '🌐 Everyone' : '🎯 Specific Users (' + config.aiAllowedUsers.length + ')'}`
-                },
-                isFromMe ? undefined : { quoted: msg }
-              ).catch(() => {});
-              continue;
-            }
-
-            try {
-              try { await sock.sendPresenceUpdate('composing', remoteJid); } catch (e) {}
-              const aiAnswer = await askOpenRouterAI(promptQuery, remoteJid, msg.pushName || 'Friend');
-              try { await sock.sendPresenceUpdate('paused', remoteJid); } catch (e) {}
-
-              if (aiAnswer) {
-                await sock.sendMessage(remoteJid, { text: aiAnswer }, isFromMe ? undefined : { quoted: msg });
-                console.log(`🤖 [DIRECT AI SENT] Query: "${promptQuery.slice(0, 30)}" to ${remoteJid}`);
-              } else {
-                await sock.sendMessage(remoteJid, { text: '❌ AI response generate karne mein masla aya. Dobara try karein.' }, isFromMe ? undefined : { quoted: msg });
-              }
-            } catch (aiErr) {
-              console.error('Direct AI error:', aiErr);
-              await sock.sendMessage(remoteJid, { text: '❌ AI Error: ' + aiErr.message }, isFromMe ? undefined : { quoted: msg });
-            }
-            continue;
-          }
 
           // .react on / off / status / group / private / own
           if (command === 'react' || command === 'autoreact') {
@@ -2947,35 +2270,11 @@ async function startBot() {
 📱 *Owner:* Kaleem Khan (923267004137)
 🔑 *Prefix:* [ \`${config.prefix}\` ]
 
-┌── 🧠 *CHATGPT / AI ASSISTANT* ───
-│ 🔹 \`${config.prefix}ai <sawal>\` ➔ Ask ChatGPT Anything
-│ 🔹 \`${config.prefix}ai @user\` ➔ Turn AI ON for specific user/chat 🎯
-│ 🔹 \`${config.prefix}ai remove @user\` ➔ Remove user from AI list
-│ 🔹 \`${config.prefix}ai list\` ➔ View active AI whitelist
-│ 🔹 \`${config.prefix}ai all on\` ➔ Turn ON for everyone (Global)
-│ 🔹 \`${config.prefix}ai off\` ➔ Turn OFF AI Auto-Reply
-└──────────────────────────
-
 ┌── 🗑️ *MEDIA & RECOVERY TOOLS* ───
 │ 🔹 \`${config.prefix}view\` ya \`${config.prefix}vo\` ➔ Unlock View-Once Media 🔓
 │ 🔹 \`${config.prefix}viewonce auto on/off\` ➔ Auto-Send View-Once to Owner DM
 │ 🔹 \`${config.prefix}deleterecovery\` ➔ Recover Deleted Msg & Media 🗑️
 │ 🔹 \`${config.prefix}antidelete on/off\` ➔ Realtime Auto-Recover in Chat
-└──────────────────────────
-
-┌── 🕌 *ISLAMIC SUITE* ─────────
-│ 🔹 \`${config.prefix}islamicdate\` ➔ Live Hijri / Islamic Date
-│ 🔹 \`${config.prefix}naat <name>\` ➔ Popular Urdu Naats (~1 Min)
-│ 🔹 \`${config.prefix}namaz <city>\` ➔ Daily Prayer Timings
-│ 🔹 \`${config.prefix}ayat\` ➔ Daily Quranic Verse
-│ 🔹 \`${config.prefix}hadith\` ➔ Sahih Hadith Shareef
-└──────────────────────────
-
-┌── 🎵 *ENTERTAINMENT & UTILITY* ──
-│ 🔹 \`${config.prefix}fun\` ➔ 13 Viral Meme Sounds (Aayein, Faaah, etc.)
-│ 🔹 \`${config.prefix}aujla <song>\` ➔ Karan Aujla Hit Songs
-│ 🔹 \`${config.prefix}weather <city>\` ➔ Live Weather Report
-│ 🔹 \`${config.prefix}crypto\` ➔ Live Crypto Rates (BTC/ETH)
 └──────────────────────────
 
 ┌── ⚙️ *SYSTEM & SETTINGS* ────────
@@ -3053,7 +2352,7 @@ async function startBot() {
                 console.log(`🧠 [AI AUTO-REPLY] Answering query for ${senderClean || remoteJid}: "${trimmedText.slice(0, 50)}"`);
                 try { await sock.sendPresenceUpdate('composing', remoteJid); } catch (e) {}
 
-                const aiAnswer = await askOpenRouterAI(trimmedText, remoteJid, msg.pushName || 'Friend');
+                const aiAnswer = await askAI(trimmedText, remoteJid, msg.pushName || 'Friend');
                 try { await sock.sendPresenceUpdate('paused', remoteJid); } catch (e) {}
 
                 if (aiAnswer) {

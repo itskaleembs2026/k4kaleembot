@@ -6,7 +6,7 @@
   "antiDeleteAuto": true,
   "viewOnceAuto": true,
   "ownerOnlyCommands": true,
-  "aiAutoReply": false,
-  "aiMode": "specific",
+  "aiAutoReply": true,
+  "aiMode": "all",
   "aiAllowedUsers": []
 }
