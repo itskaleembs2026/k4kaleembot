@@ -466,7 +466,16 @@ function handleRevokedMessage(deletedId, targetJid = '', senderJid = '') {
     const chatKey = (targetJid && targetJid !== '_global_') ? targetJid : (cached.remoteJid || '_global_');
     const cleanChat = extractCleanNumber(chatKey);
 
-    for (const k of [chatKey, cleanChat].filter(Boolean)) {
+    const allChatKeys = Array.from(new Set([
+      chatKey,
+      cleanChat,
+      cached.remoteJid,
+      cached.cleanChat,
+      cached.remoteJidAlt,
+      cached.cleanChatAlt
+    ].filter(Boolean)));
+
+    for (const k of allChatKeys) {
       if (!deletedHistoryMap.has(k)) {
         deletedHistoryMap.set(k, []);
       }
@@ -506,9 +515,11 @@ function cacheMessageEntry(remoteJid, msg, trimmedText, unwrapped) {
   if (!msg?.key?.id) return null;
   const msgId = msg.key.id;
   const storeKey = `${remoteJid}:${msgId}`;
-  const participant = msg.key.participant || remoteJid;
+  const participant = msg.key.participant || msg.key.participantAlt || remoteJid;
   const cleanPart = extractCleanNumber(participant);
   const cleanChat = extractCleanNumber(remoteJid);
+  const remoteJidAlt = msg.key.remoteJidAlt || null;
+  const cleanChatAlt = extractCleanNumber(remoteJidAlt || '');
 
   const extracted = extractAnyMedia(msg.message);
   const hasMedia = Boolean(extracted && extracted.media && extracted.type);
@@ -517,9 +528,12 @@ function cacheMessageEntry(remoteJid, msg, trimmedText, unwrapped) {
   const entry = {
     id: msgId,
     remoteJid,
+    remoteJidAlt,
     participant,
     cleanPart,
     cleanChat,
+    cleanChatAlt,
+    fromMe: Boolean(msg.key.fromMe),
     pushName: msg.pushName || 'Friend',
     timestamp: msg.messageTimestamp ? (Number(msg.messageTimestamp) * 1000) : Date.now(),
     text: trimmedText || extracted?.caption || '',
@@ -536,10 +550,12 @@ function cacheMessageEntry(remoteJid, msg, trimmedText, unwrapped) {
     isDeleted: false
   };
 
-  // Multiple indices for instant O(1) lookup
+  // Multiple indices for instant O(1) lookup (LID + PN safe)
   liveMessageStore.set(storeKey, entry);
   liveMessageStore.set(msgId, entry);
   if (cleanChat) liveMessageStore.set(`${cleanChat}:${msgId}`, entry);
+  if (remoteJidAlt) liveMessageStore.set(`${remoteJidAlt}:${msgId}`, entry);
+  if (cleanChatAlt) liveMessageStore.set(`${cleanChatAlt}:${msgId}`, entry);
 
   if (entry.isViewOnce) {
     saveToViewOnceStore(entry);
@@ -1791,42 +1807,54 @@ async function startBot() {
                 }
               }
 
-              // STEP 2: Unquoted .view — search STRICTLY within THIS chat (latest deleted / view-once / media)
+              // STEP 2: Unquoted .view — search STRICTLY within THIS chat (LID + PN safe, media + deleted text)
               if (!targetVo) {
+                const remoteJidAlt = msg.key.remoteJidAlt || null;
+                const cleanChatAlt = extractCleanNumber(remoteJidAlt || '');
+                const chatKeys = Array.from(new Set([remoteJid, cleanChat, remoteJidAlt, cleanChatAlt].filter(Boolean)));
+                const chatKeySet = new Set(chatKeys);
+
+                const matchesThisChat = (entry) => {
+                  if (!entry) return false;
+                  return (
+                    (entry.remoteJid && chatKeySet.has(entry.remoteJid)) ||
+                    (entry.cleanChat && chatKeySet.has(entry.cleanChat)) ||
+                    (entry.remoteJidAlt && chatKeySet.has(entry.remoteJidAlt)) ||
+                    (entry.cleanChatAlt && chatKeySet.has(entry.cleanChatAlt))
+                  );
+                };
+
                 const chatCandidates = [];
                 const seenIds = new Set();
 
                 const addCandidate = (item) => {
-                  if (!item || !item.mediaType || !item.id) return;
+                  if (!item || !item.id) return;
+                  if (!item.mediaType && !(item.isDeleted && item.text)) return;
                   if (seenIds.has(item.id)) return;
                   seenIds.add(item.id);
                   chatCandidates.push(item);
                 };
 
-                // 2A. Deleted media in THIS chat
-                const deletedInChat = [
-                  ...(deletedHistoryMap.get(remoteJid) || []),
-                  ...(cleanChat ? (deletedHistoryMap.get(cleanChat) || []) : [])
-                ];
-                for (const d of deletedInChat) {
-                  if (d && d.mediaType) addCandidate(d);
+                // 2A. Deleted messages (media + text) in THIS chat
+                for (const k of chatKeys) {
+                  for (const d of (deletedHistoryMap.get(k) || [])) {
+                    addCandidate(d);
+                  }
                 }
 
                 // 2B. View-Once media in THIS chat
-                const voInChat = [
-                  ...(viewOnceByChat.get(remoteJid) || []),
-                  ...(cleanChat ? (viewOnceByChat.get(cleanChat) || []) : [])
-                ];
-                for (const v of voInChat) {
-                  if (v && v.mediaType) addCandidate(v);
+                for (const k of chatKeys) {
+                  for (const v of (viewOnceByChat.get(k) || [])) {
+                    if (v && v.mediaType) addCandidate(v);
+                  }
                 }
 
-                // 2C. Recent liveMessageStore media strictly in THIS chat
+                // 2C. Recent liveMessageStore entries strictly in THIS chat
                 for (const entry of liveMessageStore.values()) {
                   if (
-                    (entry.remoteJid === remoteJid || (cleanChat && entry.cleanChat === cleanChat)) &&
-                    entry.mediaType &&
-                    (entry.mediaBuffer || entry.bufferFile || entry.mediaMessage || entry.isViewOnce || entry.isDeleted)
+                    matchesThisChat(entry) &&
+                    ((entry.mediaType && (entry.mediaBuffer || entry.bufferFile || entry.mediaMessage || entry.isViewOnce || entry.isDeleted)) ||
+                     (entry.isDeleted && entry.text))
                   ) {
                     addCandidate(entry);
                   }
@@ -1840,7 +1868,6 @@ async function startBot() {
                 });
 
                 if (chatCandidates.length > 0) {
-                  // Prioritize latest deleted or view-once media in this chat
                   const latestSpecial = chatCandidates.find(c => c.isDeleted || c.isViewOnce);
                   targetVo = latestSpecial || chatCandidates[0];
                 }
@@ -1851,11 +1878,26 @@ async function startBot() {
                 await sock.sendMessage(
                   remoteJid,
                   {
-                    text: `⚠️ *Is chat mein koi View-Once ya deleted photo/video nahi mila!*\n\n` +
+                    text: `⚠️ *Is chat mein koi View-Once ya deleted message/media nahi mila!*\n\n` +
                           `👉 *Tareeqay:*\n` +
                           `1. Kisi bhi View-Once photo/video ko reply (quote) kar ke \`${config.prefix}view\` likhein.\n` +
-                          `2. Ya is chat mein koi media delete ya view-once hone ke baad foran \`${config.prefix}view\` bhej dein.\n` +
+                          `2. Ya is chat mein koi msg/media delete ya view-once hone ke baad foran \`${config.prefix}view\` bhej dein.\n` +
                           `3. Auto View-Once ON hai — har View-Once automatically Kaleem ke personal number par save ho rahi hai! 👑`
+                  },
+                  isFromMe ? undefined : { quoted: msg }
+                ).catch(() => {});
+                continue;
+              }
+
+              // If the recovered item is a deleted text message (no mediaType), show it directly!
+              if (!targetVo.mediaType && targetVo.text) {
+                const targetSender = targetVo.pushName ? `${targetVo.pushName} (@${extractCleanNumber(targetVo.participant)})` : (targetVo.participant ? `@${extractCleanNumber(targetVo.participant)}` : 'User');
+                const mentions = targetVo.participant ? [targetVo.participant] : [];
+                await sock.sendMessage(
+                  remoteJid,
+                  {
+                    text: `🗑️ *Deleted Message Recovered*\n👤 *From:* ${targetSender}\n\n💬 *Message:*\n"${targetVo.text}"`,
+                    mentions
                   },
                   isFromMe ? undefined : { quoted: msg }
                 ).catch(() => {});
