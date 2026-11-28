@@ -1,6 +1,8 @@
 {
   "version": 2,
   "cleanUrls": true,
+  "buildCommand": "",
+  "outputDirectory": "public",
   "rewrites": [
     { "source": "/status", "destination": "https://k4kaleembot.onrender.com/status" },
     { "source": "/pair-code", "destination": "https://k4kaleembot.onrender.com/pair-code" },
