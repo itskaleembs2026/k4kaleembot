@@ -600,6 +600,7 @@ function unwrapMessage(rawMessage) {
   if (!rawMessage) return null;
   let m = rawMessage;
   while (
+    m?.deviceSentMessage?.message ||
     m?.ephemeralMessage?.message ||
     m?.viewOnceMessage?.message ||
     m?.viewOnceMessageV2?.message ||
@@ -608,6 +609,7 @@ function unwrapMessage(rawMessage) {
     m?.editedMessage?.message?.protocolMessage?.editedMessage
   ) {
     m =
+      m.deviceSentMessage?.message ||
       m.ephemeralMessage?.message ||
       m.viewOnceMessage?.message ||
       m.viewOnceMessageV2?.message ||
@@ -1351,20 +1353,28 @@ async function startBot() {
 
           if (protocolMsg) continue;
 
-          // Ignore reaction notifications, polling updates, and system key distributions
+          // Ignore pure reaction / poll / key-distribution packets ONLY if they contain NO media and NO text
+          const hasAnyMediaInPacket = Boolean(extractAnyMedia(msg.message));
           if (
-            unwrapped.reactionMessage ||
-            msg.message?.reactionMessage ||
-            unwrapped.pollUpdateMessage ||
-            msg.message?.pollUpdateMessage ||
-            unwrapped.senderKeyDistributionMessage ||
-            msg.message?.senderKeyDistributionMessage
+            !hasAnyMediaInPacket &&
+            !trimmedText &&
+            (
+              unwrapped.reactionMessage ||
+              msg.message?.reactionMessage ||
+              unwrapped.pollUpdateMessage ||
+              msg.message?.pollUpdateMessage ||
+              unwrapped.senderKeyDistributionMessage ||
+              msg.message?.senderKeyDistributionMessage
+            )
           ) {
             continue;
           }
 
           // ---------------- 💾 2. CACHE INCOMING MESSAGE & MEDIA BUFFER ----------------
-          cacheMessageEntry(remoteJid, msg, trimmedText, unwrapped);
+          const cachedEntry = cacheMessageEntry(remoteJid, msg, trimmedText, unwrapped);
+          if (cachedEntry?.mediaType) {
+            console.log(`📦 [MEDIA CACHED] Type: ${cachedEntry.mediaType} | ViewOnce: ${cachedEntry.isViewOnce} | From: ${remoteJid} | ID: ${cachedEntry.id}`);
+          }
 
           // Ignore synced historical messages older than 3 minutes (180s)
           const msgTime = Number(msg.messageTimestamp || 0);
