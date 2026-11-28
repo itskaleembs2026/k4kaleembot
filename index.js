@@ -79,10 +79,7 @@ function loadPersistentSettings() {
       if (typeof data.antiDeleteAuto === 'boolean') config.antiDeleteAuto = data.antiDeleteAuto;
       if (typeof data.viewOnceAuto === 'boolean') config.viewOnceAuto = data.viewOnceAuto;
       if (typeof data.ownerOnlyCommands === 'boolean') config.ownerOnlyCommands = data.ownerOnlyCommands;
-      if (typeof data.aiAutoReply === 'boolean') config.aiAutoReply = data.aiAutoReply;
-      if (data.aiMode === 'all' || data.aiMode === 'specific') config.aiMode = data.aiMode;
-      if (Array.isArray(data.aiAllowedUsers)) config.aiAllowedUsers = data.aiAllowedUsers;
-      console.log('💾 Loaded saved settings from settings.json (AI Mode:', config.aiMode, '| React:', config.autoReact, '| Anti-Delete Auto:', config.antiDeleteAuto, ')');
+      console.log('💾 Loaded saved settings from settings.json (React:', config.autoReact, '| Anti-Delete Auto:', config.antiDeleteAuto, '| View-Once Auto:', config.viewOnceAuto, ')');
     }
   } catch (err) {
     console.error('Error loading settings.json:', err.message);
@@ -97,11 +94,8 @@ function savePersistentSettings() {
       reactInPrivate: config.reactInPrivate ?? true,
       reactToOwnMessages: config.reactToOwnMessages ?? false,
       antiDeleteAuto: config.antiDeleteAuto ?? false,
-      viewOnceAuto: config.viewOnceAuto ?? false,
-      ownerOnlyCommands: config.ownerOnlyCommands,
-      aiAutoReply: config.aiAutoReply,
-      aiMode: config.aiMode || 'specific',
-      aiAllowedUsers: config.aiAllowedUsers || []
+      viewOnceAuto: config.viewOnceAuto ?? true,
+      ownerOnlyCommands: config.ownerOnlyCommands
     };
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(toSave, null, 2), 'utf8');
   } catch (err) {
@@ -137,96 +131,6 @@ function saveUserWarnings() {
 }
 
 loadUserWarnings();
-
-// ---------------- 🧠 AI CHAT & HUMAN-LIKE AUTO REPLY ENGINE (OPENROUTER) ----------------
-const aiChatHistoryMap = new Map(); // Key: remoteJid -> Array of { role, content }
-
-function cleanOldAiHistory() {
-  if (aiChatHistoryMap.size > 2000) {
-    const keys = Array.from(aiChatHistoryMap.keys()).slice(0, 500);
-    for (const k of keys) aiChatHistoryMap.delete(k);
-  }
-}
-setInterval(cleanOldAiHistory, 300000);
-
-async function askAI(prompt, remoteJid = '_global_', pushName = 'Friend') {
-  return await askOpenRouterAI(prompt, remoteJid, pushName);
-}
-
-async function askOpenRouterAI(prompt, remoteJid = '_global_', pushName = 'Friend') {
-  if (!prompt || !prompt.trim()) return null;
-  const apiKey = config.openRouterKey;
-  if (!apiKey) return null;
-
-  if (!aiChatHistoryMap.has(remoteJid)) {
-    aiChatHistoryMap.set(remoteJid, []);
-  }
-  const history = aiChatHistoryMap.get(remoteJid);
-
-  const systemPrompt = `You are Kaleem (your name is ONLY "Kaleem", NEVER say "Khan", NEVER use the word "Khan"), chatting casually on WhatsApp (Phone: 923267004137). You are directly chatting with ${pushName}.
-
-Core Human Behavior & Personality Rules:
-1. Identity: You are strictly "Kaleem". NEVER say "Kaleem Khan", NEVER say "Khan", NEVER use the word "Khan". Just "Kaleem".
-2. When asked for your name or who is talking (e.g. "kon ho", "naam kya hai", "who are you", "pehchana nahi", "kon baat kar raha hai"):
-   - Tell them naturally that you are Kaleem.
-   - STRICT RULE: NEVER repeat the same fixed or canned sentence every time! Do NOT say "ma kaleem hu kaleem khan bolo bhai".
-   - Always vary your wording naturally, spontaneously, and casually depending on the user's greeting:
-     * Examples: "Haan bhai, Kaleem bol raha hoon! Sab theek thaak?", "Main Kaleem hoon, aap sunao kaisay yaad kiya?", "Bhai Kaleem hoon, pehchana nahi kya? Bolo kya scene hai?", "Aray yaar Kaleem baat kar raha hoon, khairiyat?", "Kaleem here! What's up?", etc.
-3. Talk 100% naturally like a real human friend on WhatsApp:
-   - Match the user's exact language and tone (casual Pakistani Roman Urdu, casual English, or Urdu).
-   - Use natural conversational vibe ("bhai", "yaar", "jani", "batao", "scene").
-   - NEVER say you are an AI, bot, virtual assistant, or language model. You are a real human friend named Kaleem.
-4. Keep replies conversational, fast, and natural: 1 to 3 short sentences or a small friendly paragraph. Only give longer answers when user asks for a recipe, code, guide, or detailed explanation.
-5. Use natural WhatsApp emojis (😊, 👍, 🔥, ✨, 🤝, 😂).
-6. You have deep knowledge of everything: tech, business, life advice, coding, general knowledge, jokes, and daily life.`;
-
-  const messagesPayload = [
-    { role: 'system', content: systemPrompt },
-    ...history.slice(-6),
-    { role: 'user', content: prompt }
-  ];
-
-  const modelsToTry = [
-    config.aiModel || 'meta-llama/llama-3.3-70b-instruct',
-    'openai/gpt-4o-mini'
-  ];
-
-  for (const model of modelsToTry) {
-    try {
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': 'https://whatsapp-bot.pro',
-          'X-Title': 'WhatsApp Super Bot Pro',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model,
-          messages: messagesPayload,
-          max_tokens: 600,
-          temperature: 0.7
-        }),
-        signal: AbortSignal.timeout(10000)
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.choices && data.choices[0]?.message?.content) {
-          const replyText = data.choices[0].message.content.trim();
-          history.push({ role: 'user', content: prompt });
-          history.push({ role: 'assistant', content: replyText });
-          if (history.length > 10) history.splice(0, 2);
-          return replyText;
-        }
-      }
-    } catch (err) {
-      console.error(`[OpenRouter Error on ${model}]:`, err.message);
-    }
-  }
-
-  return null;
-}
 
 const app = express();
 const PORT = process.env.PORT || config.port || 3000;
@@ -1013,8 +917,6 @@ app.get('/health', (req, res) => {
     features: {
       ghostAntiDelete: config.antiDeleteAuto,
       viewOnce: config.viewOnceAuto,
-      aiAutoReply: config.aiAutoReply,
-      aiMode: config.aiMode,
       autoReact: config.autoReact,
       strictOwner: config.ownerOnlyCommands
     },
@@ -1119,9 +1021,7 @@ app.get('/status', (req, res) => {
     user: connectedUser,
     uptime,
     antiDelete: config.antiDeleteAuto,
-    viewOnce: config.viewOnceAuto,
-    ai: config.aiAutoReply,
-    aiMode: config.aiMode
+    viewOnce: config.viewOnceAuto
   });
 });
 
@@ -2248,7 +2148,6 @@ async function startBot() {
               `⚡ *Speed:* Super Fast 0ms Latency\n` +
               `⏱️ *Uptime:* ${hours}h ${minutes}m ${seconds}s\n` +
               `💾 *RAM Usage:* ${memory} MB\n` +
-              `🤖 *AI Auto-Reply:* ${config.aiAutoReply ? '🟢 Active (ChatGPT/Llama 3.3)' : '🔴 Disabled'}\n` +
               `📱 *Owner:* 923267004137\n` +
               `🌐 *Server:* Active & Running 24/7`;
             try {
@@ -2286,7 +2185,6 @@ async function startBot() {
 │ 🔹 \`${config.prefix}ping\` ➔ Speed & RAM Stats
 └──────────────────────────
 
-🤖 *AI Auto-Reply:* ${config.aiAutoReply ? (config.aiMode === 'all' ? '🟢 Global (All Users)' : `🎯 Specific (${config.aiAllowedUsers?.length || 0} users)`) : '🔴 Disabled'}
 ⚡ *Auto-React:* ${config.autoReact ? '🟢 Active' : '🔴 Disabled'}
 🗑️ *Auto Anti-Delete:* ${config.antiDeleteAuto ? '🟢 Active' : '🔴 Disabled'}
 🔓 *Auto View-Once:* ${config.viewOnceAuto ? '🟢 Active' : '🔴 Disabled'}`;
@@ -2323,50 +2221,6 @@ async function startBot() {
             }).catch((e) => {
               console.error('Reaction error:', e?.message || e);
             });
-          }
-        }
-
-        // ---------------- 🤖 4. HUMAN-LIKE AI AUTO-REPLY LOGIC (CHATGPT FEEL) ----------------
-        if (!usedPrefix && trimmedText && config.aiAutoReply) {
-          const shouldAiReplySender = !isFromMe;
-          const shouldAiReplyChat = (!isGroup && config.aiReplyInPrivate) || (isGroup && config.aiReplyInGroups);
-
-          if (shouldAiReplySender && shouldAiReplyChat) {
-            const senderClean = extractCleanNumber(senderJid);
-            const chatClean = extractCleanNumber(remoteJid);
-
-            let isAllowed = false;
-            if (config.aiMode === 'all') {
-              isAllowed = true;
-            } else {
-              const allowedList = Array.isArray(config.aiAllowedUsers) ? config.aiAllowedUsers : [];
-              isAllowed = allowedList.some(u => {
-                const uClean = extractCleanNumber(u);
-                return (uClean && (uClean === senderClean || uClean === chatClean)) ||
-                       u === senderJid || u === remoteJid;
-              });
-            }
-
-            if (isAllowed) {
-              try {
-                console.log(`🧠 [AI AUTO-REPLY] Answering query for ${senderClean || remoteJid}: "${trimmedText.slice(0, 50)}"`);
-                try { await sock.sendPresenceUpdate('composing', remoteJid); } catch (e) {}
-
-                const aiAnswer = await askAI(trimmedText, remoteJid, msg.pushName || 'Friend');
-                try { await sock.sendPresenceUpdate('paused', remoteJid); } catch (e) {}
-
-                if (aiAnswer) {
-                  await sock.sendMessage(
-                    remoteJid,
-                    { text: aiAnswer },
-                    { quoted: msg }
-                  );
-                  console.log(`🤖 [AI AUTO-REPLY SENT] to ${remoteJid}`);
-                }
-              } catch (aiErr) {
-                console.error('AI Auto-reply error:', aiErr?.message || aiErr);
-              }
-            }
           }
         }
       }

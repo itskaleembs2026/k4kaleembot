@@ -31,14 +31,5 @@ export const config = {
     "⚡", "💯", "😎", "👏", "🤖", 
     "🎉", "🌟", "🙌", "💥", "🤩", 
     "👌", "🚀", "😍", "🥳", "🤙", "🌹", "👑", "💎"
-  ],
-
-  // 🤖 AI Chat & Auto-Reply Settings (OpenRouter Llama 3.3 70B & GPT-4o-mini)
-  openRouterKey: process.env.OPENROUTER_API_KEY || "",
-  aiAutoReply: true, // Master switch for AI auto-reply
-  aiMode: "all", // "all" (everyone who messages gets instant reply) or "specific"
-  aiAllowedUsers: [], // Array of phone numbers/JIDs allowed for AI auto-reply
-  aiModel: "meta-llama/llama-3.3-70b-instruct", // Ultra fast & natural human-like
-  aiReplyInPrivate: true, // Auto reply in private chats
-  aiReplyInGroups: false // Auto reply in groups (set true if you want AI to reply in groups)
+  ]
 };

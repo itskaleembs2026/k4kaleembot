@@ -5,8 +5,5 @@
   "reactToOwnMessages": false,
   "antiDeleteAuto": true,
   "viewOnceAuto": true,
-  "ownerOnlyCommands": true,
-  "aiAutoReply": true,
-  "aiMode": "all",
-  "aiAllowedUsers": []
+  "ownerOnlyCommands": true
 }
