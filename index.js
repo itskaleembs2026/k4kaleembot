@@ -268,9 +268,12 @@ function saveToViewOnceStore(entry, shouldPersist = true) {
   }
 }
 
+const forwardedViewOnceIds = new Set();
+
 async function sendAutoViewOnceToOwner(entry) {
   try {
     if (!entry) return;
+    if (entry.id && forwardedViewOnceIds.has(entry.id)) return;
 
     // 1. Resolve media buffer if not already loaded into memory
     if (!entry.mediaBuffer && entry.bufferFile && fs.existsSync(entry.bufferFile)) {
@@ -321,27 +324,30 @@ async function sendAutoViewOnceToOwner(entry) {
 
     const mentions = entry.participant ? [entry.participant] : (cleanSender ? [`${cleanSender}@s.whatsapp.net`] : []);
 
+    if (entry.id) forwardedViewOnceIds.add(entry.id);
+    entry.forwardedToOwner = true;
+
     if (entry.mediaType === 'image') {
       await sock.sendMessage(ownerTarget, {
         image: entry.mediaBuffer,
         caption: header,
         mimetype: entry.mimetype || 'image/jpeg',
         mentions
-      }).catch(() => {});
+      });
     } else if (entry.mediaType === 'video') {
       await sock.sendMessage(ownerTarget, {
         video: entry.mediaBuffer,
         caption: header,
         mimetype: entry.mimetype || 'video/mp4',
         mentions
-      }).catch(() => {});
+      });
     } else if (entry.mediaType === 'audio') {
       await sock.sendMessage(ownerTarget, { text: header, mentions }).catch(() => {});
       await sock.sendMessage(ownerTarget, {
         audio: entry.mediaBuffer,
         mimetype: entry.mimetype || 'audio/mp4',
         ptt: entry.ptt ?? true
-      }).catch(() => {});
+      });
     } else if (entry.mediaType === 'document') {
       await sock.sendMessage(ownerTarget, {
         document: entry.mediaBuffer,
@@ -349,10 +355,11 @@ async function sendAutoViewOnceToOwner(entry) {
         fileName: entry.fileName || 'unlocked_file',
         caption: header,
         mentions
-      }).catch(() => {});
+      });
     }
     console.log(`🔓 [AUTO VIEW-ONCE] Forwarded unlocked ${entry.mediaType} permanently to owner (${ownerTarget})`);
   } catch (err) {
+    if (entry?.id) forwardedViewOnceIds.delete(entry.id);
     console.error('Error in sendAutoViewOnceToOwner:', err.message);
   }
 }
@@ -762,60 +769,80 @@ function isViewOnceMessage(rawMessage) {
   return false;
 }
 
-function extractAnyMedia(rawMessage) {
-  if (!rawMessage) return null;
-  const unwrapped = unwrapMessage(rawMessage) || rawMessage;
+function deepFindMedia(obj, depth = 0, seenViewOnce = false) {
+  if (!obj || typeof obj !== 'object' || depth > 8) return null;
+  const isVoHere = seenViewOnce || Boolean(
+    obj.viewOnceMessage || obj.viewOnceMessageV2 || obj.viewOnceMessageV2Extension || obj.viewOnce
+  );
 
-  if (unwrapped.imageMessage) {
+  if (obj.imageMessage) {
     return {
       type: 'image',
-      media: unwrapped.imageMessage,
-      caption: unwrapped.imageMessage.caption || '',
-      mimetype: unwrapped.imageMessage.mimetype || 'image/jpeg',
+      media: obj.imageMessage,
+      caption: obj.imageMessage.caption || '',
+      mimetype: obj.imageMessage.mimetype || 'image/jpeg',
       fileName: 'viewonce_photo.jpg',
-      isViewOnce: Boolean(isViewOnceMessage(rawMessage) || unwrapped.imageMessage.viewOnce)
+      isViewOnce: Boolean(isVoHere || obj.imageMessage.viewOnce)
     };
   }
-  if (unwrapped.videoMessage) {
+  if (obj.videoMessage) {
     return {
       type: 'video',
-      media: unwrapped.videoMessage,
-      caption: unwrapped.videoMessage.caption || '',
-      mimetype: unwrapped.videoMessage.mimetype || 'video/mp4',
+      media: obj.videoMessage,
+      caption: obj.videoMessage.caption || '',
+      mimetype: obj.videoMessage.mimetype || 'video/mp4',
       fileName: 'viewonce_video.mp4',
-      isViewOnce: Boolean(isViewOnceMessage(rawMessage) || unwrapped.videoMessage.viewOnce)
+      isViewOnce: Boolean(isVoHere || obj.videoMessage.viewOnce)
     };
   }
-  if (unwrapped.audioMessage) {
+  if (obj.audioMessage) {
     return {
       type: 'audio',
-      media: unwrapped.audioMessage,
-      mimetype: unwrapped.audioMessage.mimetype || 'audio/mp4',
-      ptt: Boolean(unwrapped.audioMessage.ptt),
-      fileName: unwrapped.audioMessage.ptt ? 'voice_note.mp4' : 'audio.mp3',
-      isViewOnce: Boolean(isViewOnceMessage(rawMessage) || unwrapped.audioMessage.viewOnce)
+      media: obj.audioMessage,
+      mimetype: obj.audioMessage.mimetype || 'audio/mp4',
+      ptt: Boolean(obj.audioMessage.ptt),
+      fileName: obj.audioMessage.ptt ? 'voice_note.mp4' : 'audio.mp3',
+      isViewOnce: Boolean(isVoHere || obj.audioMessage.viewOnce)
     };
   }
-  if (unwrapped.stickerMessage) {
+  if (obj.stickerMessage) {
     return {
       type: 'sticker',
-      media: unwrapped.stickerMessage,
-      mimetype: unwrapped.stickerMessage.mimetype || 'image/webp',
+      media: obj.stickerMessage,
+      mimetype: obj.stickerMessage.mimetype || 'image/webp',
       fileName: 'sticker.webp',
       isViewOnce: false
     };
   }
-  if (unwrapped.documentMessage) {
+  if (obj.documentMessage) {
     return {
       type: 'document',
-      media: unwrapped.documentMessage,
-      mimetype: unwrapped.documentMessage.mimetype || 'application/octet-stream',
-      fileName: unwrapped.documentMessage.fileName || 'document',
-      caption: unwrapped.documentMessage.caption || '',
-      isViewOnce: Boolean(isViewOnceMessage(rawMessage) || unwrapped.documentMessage.viewOnce)
+      media: obj.documentMessage,
+      mimetype: obj.documentMessage.mimetype || 'application/octet-stream',
+      fileName: obj.documentMessage.fileName || 'document',
+      caption: obj.documentMessage.caption || '',
+      isViewOnce: Boolean(isVoHere || obj.documentMessage.viewOnce)
     };
   }
+
+  for (const key of Object.keys(obj)) {
+    if (key === 'contextInfo' || key === 'quotedMessage' || key === 'messageContextInfo') continue;
+    const val = obj[key];
+    if (val && typeof val === 'object' && !Buffer.isBuffer(val) && !Array.isArray(val)) {
+      const nextVo = isVoHere || key.toLowerCase().includes('viewonce');
+      const found = deepFindMedia(val, depth + 1, nextVo);
+      if (found) return found;
+    }
+  }
   return null;
+}
+
+function extractAnyMedia(rawMessage) {
+  if (!rawMessage) return null;
+  const unwrapped = unwrapMessage(rawMessage) || rawMessage;
+  const found = deepFindMedia(unwrapped, 0, isViewOnceMessage(rawMessage));
+  if (found) return found;
+  return deepFindMedia(rawMessage, 0, isViewOnceMessage(rawMessage));
 }
 
 function getContextInfo(rawMessage) {
@@ -1311,6 +1338,21 @@ async function startBot() {
       } catch (err) {}
     });
 
+    // ---------------- 👁️ VIEW-ONCE OPENED RECEIPT LISTENER ----------------
+    sock.ev.on('message-receipt.update', async (receipts) => {
+      try {
+        for (const rec of receipts) {
+          const msgId = rec.key?.id;
+          if (!msgId) continue;
+          const cached = liveMessageStore.get(msgId) || lastViewOnceMap.get(msgId);
+          if (cached && cached.isViewOnce && !cached.forwardedToOwner && config.viewOnceAuto) {
+            console.log(`👁️ [VIEW-ONCE OPENED] Forwarding ${msgId} permanently to owner DM...`);
+            sendAutoViewOnceToOwner(cached).catch(() => {});
+          }
+        }
+      } catch (e) {}
+    });
+
     // ---------------- 📩 MESSAGE HANDLER (MESSAGES.UPSERT) ----------------
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       try {
@@ -1327,6 +1369,11 @@ async function startBot() {
             remoteJid.endsWith('@newsletter')
           ) {
             continue;
+          }
+
+          const rawKeys = Object.keys(msg.message).filter(k => k !== 'messageContextInfo');
+          if (rawKeys.length > 0 && !rawKeys.includes('conversation') && !rawKeys.includes('extendedTextMessage')) {
+            console.log(`📨 [PACKET] From: ${remoteJid} | fromMe: ${Boolean(msg.key.fromMe)} | Keys: ${rawKeys.join(', ')}`);
           }
 
           const isGroup = remoteJid.endsWith('@g.us');
