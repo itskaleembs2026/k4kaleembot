@@ -20,6 +20,7 @@ export const config = {
   reactInPrivate: true, // React to private 1-on-1 chats
   antiDeleteAuto: true, // Auto Anti-Delete Shield: Immediately reposts deleted messages so no one can Delete for Everyone!
   viewOnceAuto: true, // Auto-send view once media to owner privately
+  ghostPrivacy: true, // Hide Blue Ticks on seen messages & Hide Status Seen (Read Receipts = none)
   
   // Super Fast / Instant Reaction (0ms delay)
   minDelayMs: 0,

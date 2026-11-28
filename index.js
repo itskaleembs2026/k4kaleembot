@@ -78,6 +78,7 @@ function loadPersistentSettings() {
       if (typeof data.reactToOwnMessages === 'boolean') config.reactToOwnMessages = data.reactToOwnMessages;
       if (typeof data.antiDeleteAuto === 'boolean') config.antiDeleteAuto = data.antiDeleteAuto;
       if (typeof data.viewOnceAuto === 'boolean') config.viewOnceAuto = data.viewOnceAuto;
+      if (typeof data.ghostPrivacy === 'boolean') config.ghostPrivacy = data.ghostPrivacy;
       if (typeof data.ownerOnlyCommands === 'boolean') config.ownerOnlyCommands = data.ownerOnlyCommands;
       console.log('💾 Loaded saved settings from settings.json (React:', config.autoReact, '| Anti-Delete Auto:', config.antiDeleteAuto, '| View-Once Auto:', config.viewOnceAuto, ')');
     }
@@ -95,6 +96,7 @@ function savePersistentSettings() {
       reactToOwnMessages: config.reactToOwnMessages ?? false,
       antiDeleteAuto: config.antiDeleteAuto ?? false,
       viewOnceAuto: config.viewOnceAuto ?? true,
+      ghostPrivacy: config.ghostPrivacy ?? true,
       ownerOnlyCommands: config.ownerOnlyCommands
     };
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(toSave, null, 2), 'utf8');
@@ -962,6 +964,7 @@ app.get('/health', (req, res) => {
     features: {
       ghostAntiDelete: config.antiDeleteAuto,
       viewOnce: config.viewOnceAuto,
+      ghostPrivacy: config.ghostPrivacy,
       autoReact: config.autoReact,
       strictOwner: config.ownerOnlyCommands
     },
@@ -1250,6 +1253,7 @@ async function startBot() {
       logger: pino({ level: 'silent' }),
       auth: state,
       printQRInTerminal: false,
+      markOnlineOnConnect: false,
       browser: ['Ubuntu', 'Chrome', '20.0.04'],
       syncFullHistory: false,
       generateHighQualityLinkPreview: false,
@@ -1320,6 +1324,11 @@ async function startBot() {
         console.log('✅ WhatsApp Super Bot Pro Connected Successfully!');
         console.log(`👑 Connected Account: ${sock.user?.id?.split(':')[0] || 'User'}`);
         loadViewOnceFromDisk();
+        if (config.ghostPrivacy) {
+          sock.updateReadReceiptsPrivacy('none')
+            .then(() => console.log('👻 [GHOST PRIVACY ACTIVE] Read Receipts = none (No Blue Ticks & Hidden Status Seen)'))
+            .catch((e) => console.error('⚠️ Could not set ghostPrivacy:', e?.message || e));
+        }
       }
     });
 
@@ -2186,6 +2195,49 @@ async function startBot() {
             }
           }
 
+          // .ghost on / off or .bluetick off / on (Hide Blue Ticks + Hide Status Seen)
+          if (command === 'ghost' || command === 'bluetick' || command === 'privacy') {
+            const turnHideOn =
+              (command === 'bluetick' && (param === 'off' || param === '0')) ||
+              (command !== 'bluetick' && (param === 'on' || param === '1'));
+            const turnHideOff =
+              (command === 'bluetick' && (param === 'on' || param === '1')) ||
+              (command !== 'bluetick' && (param === 'off' || param === '0'));
+
+            if (turnHideOn) {
+              config.ghostPrivacy = true;
+              savePersistentSettings();
+              try {
+                await sock.updateReadReceiptsPrivacy('none');
+              } catch (e) {}
+              await sock.sendMessage(
+                remoteJid,
+                { text: '👻 *Ghost Privacy Mode is now ON!*\n\n✅ Kisi ka message seen karne par **Blue Tick nahi lagega**.\n✅ Kisi ka **Status** dekhne par saamne wale ko pata nahi chalega.' },
+                isFromMe ? undefined : { quoted: msg }
+              ).catch(() => {});
+              continue;
+            } else if (turnHideOff) {
+              config.ghostPrivacy = false;
+              savePersistentSettings();
+              try {
+                await sock.updateReadReceiptsPrivacy('all');
+              } catch (e) {}
+              await sock.sendMessage(
+                remoteJid,
+                { text: '🔵 *Ghost Privacy Mode is now OFF!*\n\nAb normal Blue Ticks aur Status Seen wapis ON ho gaye hain.' },
+                isFromMe ? undefined : { quoted: msg }
+              ).catch(() => {});
+              continue;
+            } else {
+              await sock.sendMessage(
+                remoteJid,
+                { text: `👻 *Ghost Privacy Status:* ${config.ghostPrivacy ? '🟢 ON (No Blue Ticks & Hidden Status Seen)' : '🔴 OFF (Normal)'}\n\n👉 \`${config.prefix}ghost on\` ➔ Hide Blue Ticks & Status Seen\n👉 \`${config.prefix}ghost off\` ➔ Restore Normal Blue Ticks` },
+                isFromMe ? undefined : { quoted: msg }
+              ).catch(() => {});
+              continue;
+            }
+          }
+
           // .owner on / off or .private on / off (Strict Owner Security Toggle)
           if (command === 'owner' || command === 'private' || command === 'ownersonly') {
             if (param === 'on' || param === '1') {
@@ -2281,12 +2333,14 @@ async function startBot() {
 │ 🔹 \`${config.prefix}react group on/off\` ➔ React in Groups Toggle
 │ 🔹 \`${config.prefix}react private on/off\` ➔ React in Private DM Toggle
 │ 🔹 \`${config.prefix}owner on/off\` ➔ Strict Owner Security Mode
+│ 🔹 \`${config.prefix}ghost on/off\` ➔ Hide Blue Ticks & Status Seen 👻
 │ 🔹 \`${config.prefix}ping\` ➔ Speed & RAM Stats
 └──────────────────────────
 
 ⚡ *Auto-React:* ${config.autoReact ? '🟢 Active' : '🔴 Disabled'}
 🗑️ *Auto Anti-Delete:* ${config.antiDeleteAuto ? '🟢 Active' : '🔴 Disabled'}
-🔓 *Auto View-Once:* ${config.viewOnceAuto ? '🟢 Active' : '🔴 Disabled'}`;
+🔓 *Auto View-Once:* ${config.viewOnceAuto ? '🟢 Active' : '🔴 Disabled'}
+👻 *Ghost Privacy (No Blue Tick):* ${config.ghostPrivacy ? '🟢 Active' : '🔴 Disabled'}`;
 
             try {
               await sock.sendMessage(remoteJid, { text: menuText }, isFromMe ? undefined : { quoted: msg });
