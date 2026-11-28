@@ -903,6 +903,13 @@ async function downloadMedia(mediaMessage, type) {
     else type = 'image';
   }
 
+  // Normalize mediaKey if serialized as plain object/array
+  if (target && target.mediaKey && !Buffer.isBuffer(target.mediaKey) && !(target.mediaKey instanceof Uint8Array)) {
+    try {
+      target = { ...target, mediaKey: Buffer.from(Object.values(target.mediaKey)) };
+    } catch (e) {}
+  }
+
   // Attempt 1: Direct stream download via downloadContentFromMessage
   try {
     const stream = await downloadContentFromMessage(target, type);
@@ -913,6 +920,7 @@ async function downloadMedia(mediaMessage, type) {
     const buf = Buffer.concat(chunks);
     if (buf && buf.length > 0) return buf;
   } catch (err1) {
+    console.error(`⚠️ [downloadMedia Attempt 1 failed] type=${type} hasUrl=${Boolean(target?.url)} hasDirectPath=${Boolean(target?.directPath)} hasMediaKey=${Boolean(target?.mediaKey)} err=${err1?.message}`);
     // Attempt 2: Fallback via downloadMediaMessage with Baileys reupload context
     try {
       const typeKey = type === 'audio' ? 'audioMessage' :
@@ -923,6 +931,7 @@ async function downloadMedia(mediaMessage, type) {
       const buf = await downloadMediaMessage({ message: { [typeKey]: target } }, 'buffer', {}, ctx);
       if (buf && buf.length > 0) return buf;
     } catch (err2) {
+      console.error(`⚠️ [downloadMedia Attempt 2 failed] err=${err2?.message}`);
       // Attempt 3: If direct download fails but jpegThumbnail exists (e.g. quoted message preview)
       if (target?.jpegThumbnail && Buffer.isBuffer(target.jpegThumbnail)) {
         return target.jpegThumbnail;
@@ -1368,7 +1377,12 @@ async function startBot() {
         if (type !== 'notify' && type !== 'append') return;
 
         for (const msg of messages) {
-          if (!msg.message) continue;
+          if (!msg.message) {
+            if (msg.messageStubType || msg.key?.id) {
+              console.log(`⚠️ [STUB/EMPTY MSG] From: ${msg.key?.remoteJid} | stubType: ${msg.messageStubType} | id: ${msg.key?.id}`);
+            }
+            continue;
+          }
 
           const remoteJid = msg.key.remoteJid;
           if (
